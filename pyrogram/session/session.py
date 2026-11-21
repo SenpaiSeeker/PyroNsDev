@@ -217,80 +217,88 @@ class Session:
                     log.error("Task failed while the session was stopping", exc_info=result)
 
     async def start(self):
-        if self._state in (SessionState.STARTED, SessionState.STARTING):
-            log.debug("Session already started")
-            return
+        while True:
+            if self._must_stay_stopped:
+                log.info("Session stop requested, aborting start")
+                return
 
-        await self._set_state(SessionState.STARTING)
+            if self._state in (SessionState.STARTED, SessionState.STARTING):
+                log.debug("Session already started")
+                return
 
-        self.connection = self.client.connection_factory(
-            dc_id=self.dc_id,
-            server_address=self.server_address,
-            port=self.port,
-            test_mode=self.test_mode,
-            proxy=self.client.proxy,
-            media=self.is_media,
-            protocol_factory=self.client.protocol_factory,
-            crypto_executor_workers=self.CRYPTO_EXECUTOR_WORKERS,
-        )
+            await self._set_state(SessionState.STARTING)
 
-        try:
-            await self.connection.connect()
+            self.connection = self.client.connection_factory(
+                dc_id=self.dc_id,
+                server_address=self.server_address,
+                port=self.port,
+                test_mode=self.test_mode,
+                proxy=self.client.proxy,
+                media=self.is_media,
+                protocol_factory=self.client.protocol_factory,
+                crypto_executor_workers=self.CRYPTO_EXECUTOR_WORKERS,
+            )
 
-            self.recv_task = asyncio.create_task(self.recv_worker())
+            try:
+                await self.connection.connect()
 
-            await self.send(raw.functions.Ping(ping_id=0), timeout=self.START_TIMEOUT)
+                self.recv_task = asyncio.create_task(self.recv_worker())
 
-            init_connection_params = self.client.init_connection_params
+                await self.send(raw.functions.Ping(ping_id=0), timeout=self.START_TIMEOUT)
 
-            # Telegram wants to know which proxy a client sits behind.
-            proxy_address = client_proxy_address(self.client.proxy)
-            client_proxy: raw.types.InputClientProxy | None = None
+                init_connection_params = self.client.init_connection_params
 
-            if proxy_address is not None:
-                client_proxy = raw.types.InputClientProxy(
-                    address=proxy_address.hostname,
-                    port=proxy_address.port,
-                )
+                # Telegram wants to know which proxy a client sits behind.
+                proxy_address = client_proxy_address(self.client.proxy)
+                client_proxy: raw.types.InputClientProxy | None = None
 
-            if isinstance(init_connection_params, dict):
-                init_connection_params = utils.obj_to_jsonvalue(init_connection_params)
+                if proxy_address is not None:
+                    client_proxy = raw.types.InputClientProxy(
+                        address=proxy_address.hostname,
+                        port=proxy_address.port,
+                    )
 
-            if not self.is_cdn:
-                await self.send(
-                    raw.functions.InvokeWithLayer(
-                        layer=layer,
-                        query=raw.functions.InitConnection(
-                            api_id=await self.client.storage.api_id(),
-                            app_version=self.client.app_version,
-                            device_model=self.client.device_model,
-                            system_version=self.client.system_version,
-                            system_lang_code=self.client.system_lang_code,
-                            lang_pack=self.client.lang_pack,
-                            lang_code=self.client.lang_code,
-                            query=raw.functions.help.GetConfig(),
-                            params=init_connection_params,
-                            proxy=client_proxy,
+                if isinstance(init_connection_params, dict):
+                    init_connection_params = utils.obj_to_jsonvalue(init_connection_params)
+
+                if not self.is_cdn:
+                    await self.send(
+                        raw.functions.InvokeWithLayer(
+                            layer=layer,
+                            query=raw.functions.InitConnection(
+                                api_id=await self.client.storage.api_id(),
+                                app_version=self.client.app_version,
+                                device_model=self.client.device_model,
+                                system_version=self.client.system_version,
+                                system_lang_code=self.client.system_lang_code,
+                                lang_pack=self.client.lang_pack,
+                                lang_code=self.client.lang_code,
+                                query=raw.functions.help.GetConfig(),
+                                params=init_connection_params,
+                                proxy=client_proxy,
+                            ),
                         ),
-                    ),
-                    timeout=self.START_TIMEOUT,
-                )
+                        timeout=self.START_TIMEOUT,
+                    )
 
-            self.ping_task = asyncio.create_task(self.ping_worker())
+                self.ping_task = asyncio.create_task(self.ping_worker())
 
-            log.info("Session initialized: Kurigram v%s (Layer %s)", pyrogram.__version__, layer)
-            log.info("Device: %s - %s", self.client.device_model, self.client.app_version)
-            log.info("System: %s (%s)", self.client.system_version, self.client.lang_code)
-        except (AuthKeyDuplicated, Unauthorized) as e:
-            await self.stop()
-            raise e
-        except (OSError, RPCError) as e:
-            log.info("Restarting session due to - %s - %s", e.__class__.__name__, e)
-            asyncio.create_task(self.restart())
-            return
-        except Exception as e:
-            await self.stop()
-            raise e
+                log.info("Session initialized: Kurigram v%s (Layer %s)", pyrogram.__version__, layer)
+                log.info("Device: %s - %s", self.client.device_model, self.client.app_version)
+                log.info("System: %s (%s)", self.client.system_version, self.client.lang_code)
+            except (AuthKeyDuplicated, Unauthorized) as e:
+                await self.stop()
+                raise e
+            except (OSError, RPCError) as e:
+                log.warning("Session start failed, retrying: %s - %s", e.__class__.__name__, e)
+                await self._stop()
+                await asyncio.sleep(2)
+                continue
+            except Exception as e:
+                await self.stop()
+                raise e
+            else:
+                break
 
         await self._set_state(SessionState.STARTED)
         self.is_started.set()
