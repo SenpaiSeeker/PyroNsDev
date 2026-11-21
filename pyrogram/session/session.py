@@ -594,6 +594,8 @@ class Session:
                     wait_response=False,
                 )
             except OSError as e:
+                # Clear is_started so restart()'s dedupe does not skip recovery.
+                self.is_started.clear()
                 log.info("Restarting session due to - %s - %s", e.__class__.__name__, e)
                 asyncio.create_task(self.restart())
                 break
@@ -644,6 +646,10 @@ class Session:
                     else:
                         error = "Server sent a null packet."
 
+                    # Clear is_started before scheduling restart, otherwise restart()
+                    # dedupes on the still-set flag and skips recovery after this
+                    # worker has broken out of its loop.
+                    self.is_started.clear()
                     log.info("Restarting session due to - %s", error)
                     asyncio.create_task(self.restart())
 
