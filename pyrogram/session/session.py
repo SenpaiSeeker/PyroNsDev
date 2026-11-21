@@ -19,6 +19,7 @@
 from __future__ import annotations as _annotations
 
 import asyncio
+import time
 import bisect
 import logging
 import os
@@ -168,6 +169,7 @@ class Session:
 
         self.is_started = asyncio.Event()
         self.restart_lock = asyncio.Lock()
+        self._last_restart_at = 0.0
 
         # Never cleared: a stopped session is replaced rather than started again, since
         #  every caller that stops one then asks `Client.get_session()` to build a fresh one.
@@ -374,6 +376,21 @@ class Session:
 
     async def restart(self):
         async with self.restart_lock:
+            if self._must_stay_stopped:
+                return
+
+            if self.is_started.is_set() and self._state == SessionState.STARTED:
+                return
+
+            now = time.monotonic()
+            wait = 2 - (now - self._last_restart_at)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last_restart_at = time.monotonic()
+
+            if self.is_started.is_set() and self._state == SessionState.STARTED:
+                return
+
             if self.stored_msg_ids:
                 self.recent_msg_ids = self.stored_msg_ids[:30]
 
