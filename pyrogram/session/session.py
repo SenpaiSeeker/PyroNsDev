@@ -728,6 +728,21 @@ class Session:
                 ) from e
 
             try:
+                if (
+                    self.connection is None
+                    or self.connection.protocol is None
+                    or getattr(self.connection.protocol, "closed", True)
+                ):
+                    if attempt < retries:
+                        if attempt == 1:
+                            try:
+                                await self.restart()
+                            except Exception:
+                                pass
+                        await asyncio.sleep(1)
+                        continue
+                    raise TimeoutError(f'Connection unavailable for "{query_name}"')
+
                 return await self.send(query, timeout=timeout)
             except (FloodWait, FloodPremiumWait) as e:
                 amount = e.seconds
@@ -744,16 +759,20 @@ class Session:
 
                 await asyncio.sleep(amount)
             except (OSError, InternalServerError, ServiceUnavailable) as e:
-                # `TCP.send` raises a bare `TimeoutError`, an `OSError` whose `str()` is
-                #  empty, so without the `repr` fallback the line would end at "due to: ".
-                #  `pyrogram/connection/transport/tcp/tcp.py:505`.
                 log.warning(
-                    '[%s] Retrying "%s" (attempt %s) due to: %s',
+                    '[%s] Retrying "%s" (attempt %s/%s) due to: %s',
                     self.client.name,
                     query_name,
                     attempt,
+                    retries,
                     str(e) or repr(e),
                 )
+
+                if isinstance(e, OSError) and attempt == 1 and attempt < retries:
+                    try:
+                        await self.restart()
+                    except Exception:
+                        pass
 
                 await asyncio.sleep(retry_delay)
 

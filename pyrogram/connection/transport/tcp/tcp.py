@@ -202,11 +202,20 @@ class TCP:
 
         self.marker_event = asyncio.Event()
         self.lock = asyncio.Lock()
+        self._closed = True
 
         self._web_carrier: WebProxyCarrier | None = None
         self._records: FakeTlsRecords | None = None
         self._encrypt: CipherArgs | None = None
         self._decrypt: CipherArgs | None = None
+
+    @property
+    def closed(self) -> bool:
+        if self._closed:
+            return True
+        if self._web_carrier is not None:
+            return False
+        return self.writer is None or self.writer.is_closing() or self.reader is None
 
     @property
     def is_web_proxy(self) -> bool:
@@ -524,17 +533,24 @@ class TCP:
         #  the outer guard can only cut a working handshake short.
         if self.is_web_proxy:
             await self._connect(address)
+            self._closed = False
             return
 
         try:
             await asyncio.wait_for(self._connect(address), timeout=TCP.TIMEOUT)
+            self._closed = False
         except (
             asyncio.TimeoutError
         ) as e:  # Re-raise as TimeoutError. asyncio.TimeoutError is deprecated in 3.11
+            self._closed = True
             raise TimeoutError("Connection timed out") from e
+        except Exception:
+            self._closed = True
+            raise
 
     async def close(self) -> None:
         async with self.lock:
+            self._closed = True
             if self._web_carrier is not None:
                 carrier, self._web_carrier = self._web_carrier, None
                 try:
@@ -558,6 +574,7 @@ class TCP:
             except Exception as e:
                 log.info("Close exception: %s %s", type(e).__name__, e)
             finally:
+                self._closed = True
                 self.writer = None
 
     async def send(self, data: bytes, wait_for_marker: bool = True) -> None:
@@ -580,6 +597,9 @@ class TCP:
                     self.crypto_executor, aes.ctr256_encrypt, data, *self._encrypt
                 )
 
+            if self._closed:
+                raise OSError("Connection is closed")
+
             log.debug("Sending %d bytes", len(data))
             try:
                 if self._web_carrier is not None:
@@ -592,6 +612,7 @@ class TCP:
                     await self.writer.drain()
                 log.debug("Send complete")
             except Exception as e:
+                self._closed = True
                 log.error("Send failed: %s %s", type(e).__name__, e)
                 raise OSError(e) from e
 
@@ -628,9 +649,11 @@ class TCP:
                 log.debug(
                     "Recv timed out after %ss (got %d/%d bytes)", TCP.TIMEOUT, len(data), length
                 )
+                self._closed = True
                 return None
             except OSError as e:
                 log.debug("Recv OSError: %s %s", type(e).__name__, e)
+                self._closed = True
                 return None
             else:
                 if chunk:
@@ -644,6 +667,7 @@ class TCP:
                         len(data),
                         length,
                     )
+                    self._closed = True
                     return None
 
         log.debug("Recv complete: %d bytes", len(data))
