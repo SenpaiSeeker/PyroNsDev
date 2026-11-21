@@ -925,6 +925,7 @@ class Client(Methods):
             users = {u.id: u for u in updates.users}
             chats = {c.id: c for c in updates.chats}
 
+            state_updates = []
             for update in updates.updates:
                 channel_id = getattr(
                     getattr(getattr(update, "message", None), "peer_id", None), "channel_id", None
@@ -935,16 +936,7 @@ class Client(Methods):
 
                 if pts is not None or qts is not None:
                     state_id = utils.get_channel_id(channel_id) if channel_id else 0
-
-                    await self.storage.set_update_state(
-                        UpdateState(
-                            state_id,
-                            pts,
-                            qts,
-                            None,
-                            None,
-                        )
-                    )
+                    state_updates.append(UpdateState(state_id, pts, qts, None, None))
 
                 if isinstance(update, raw.types.UpdateChannelTooLong):
                     log.info(update)
@@ -994,6 +986,8 @@ class Client(Methods):
                     chats=chats,
                 )
 
+            if state_updates:
+                await self.storage.set_update_state(state_updates)
             await self.storage.set_update_state(
                 UpdateState(0, None, None, updates.date, updates.seq)
             )

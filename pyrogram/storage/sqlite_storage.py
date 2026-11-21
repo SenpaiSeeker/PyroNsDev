@@ -18,6 +18,7 @@
 
 from __future__ import annotations as _annotations
 
+import asyncio
 import base64
 import logging
 import sqlite3
@@ -167,6 +168,10 @@ class SQLiteStorage(Storage):
         self.in_memory = in_memory
         self.use_wal = use_wal
         self.do_vacuum = do_vacuum
+
+        self._update_state_cache: dict[int, UpdateState] = {}
+        self._update_state_dirty: set[int] = set()
+        self._update_state_flush_task = None
 
         if self.in_memory:
             self.database = ":memory:"
@@ -331,9 +336,15 @@ class SQLiteStorage(Storage):
 
     async def save(self):
         await self.date(int(time.time()))
+        await self._flush_update_states()
         self.conn.commit()
 
     async def close(self):
+        try:
+            await self._flush_update_states()
+            self.conn.commit()
+        except Exception:
+            pass
         self.conn.close()
 
     async def delete(self):
@@ -370,25 +381,86 @@ class SQLiteStorage(Storage):
         )
 
     async def get_update_states(self, ids: int | Iterable[int] | None = None):
-        query = "SELECT id, pts, qts, date, seq FROM update_state"
-
         if ids is not None:
             state_ids = (ids,) if isinstance(ids, int) else tuple(ids)
-
             if not state_ids:
                 return []
+            result = []
+            missing = []
+            for sid in state_ids:
+                cached = self._update_state_cache.get(sid)
+                if cached is not None:
+                    result.append(cached)
+                else:
+                    missing.append(sid)
+            if missing:
+                placeholders = ", ".join("?" for _ in missing)
+                rows = self.conn.execute(
+                    f"SELECT id, pts, qts, date, seq FROM update_state WHERE id IN ({placeholders})",
+                    tuple(missing),
+                ).fetchall()
+                for row in rows:
+                    st = UpdateState(*row)
+                    self._update_state_cache.setdefault(st.id, st)
+                    result.append(st)
+            return result
 
-            placeholders = ", ".join("?" for _ in state_ids)
-            query += f" WHERE id IN ({placeholders})"
-        else:
-            state_ids = ()
-
-        rows = self.conn.execute(query + " ORDER BY date ASC", state_ids).fetchall()
-        return [UpdateState(*row) for row in rows]
+        rows = self.conn.execute(
+            "SELECT id, pts, qts, date, seq FROM update_state ORDER BY date ASC"
+        ).fetchall()
+        merged = {row[0]: UpdateState(*row) for row in rows}
+        merged.update(self._update_state_cache)
+        return sorted(merged.values(), key=lambda x: x.date or 0)
 
     async def set_update_state(self, update_state: UpdateState | Iterable[UpdateState]):
-        states = [update_state] if isinstance(update_state, UpdateState) else update_state
+        states = [update_state] if isinstance(update_state, UpdateState) else list(update_state)
+        for state in states:
+            old = self._update_state_cache.get(state.id)
+            if old is None:
+                self._update_state_cache[state.id] = state
+            else:
+                self._update_state_cache[state.id] = UpdateState(
+                    state.id,
+                    state.pts if state.pts is not None else old.pts,
+                    state.qts if state.qts is not None else old.qts,
+                    state.date if state.date is not None else old.date,
+                    state.seq if state.seq is not None else old.seq,
+                )
+            self._update_state_dirty.add(state.id)
 
+        if len(self._update_state_dirty) >= 200:
+            await self._flush_update_states()
+        else:
+            self._schedule_update_state_flush()
+
+    def _schedule_update_state_flush(self):
+        if self._update_state_flush_task and not self._update_state_flush_task.done():
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._update_state_flush_task = loop.create_task(self._flush_update_states_soon())
+
+    async def _flush_update_states_soon(self):
+        try:
+            await asyncio.sleep(30)
+            await self._flush_update_states()
+        except Exception:
+            pass
+
+    async def _flush_update_states(self):
+        if not self._update_state_dirty or self._conn is None:
+            return
+        dirty = list(self._update_state_dirty)
+        self._update_state_dirty.clear()
+        rows = []
+        for sid in dirty:
+            st = self._update_state_cache.get(sid)
+            if st is not None:
+                rows.append((st.id, st.pts, st.qts, st.date, st.seq))
+        if not rows:
+            return
         self.conn.executemany(
             "INSERT INTO update_state (id, pts, qts, date, seq) VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(id) DO UPDATE SET "
@@ -396,7 +468,7 @@ class SQLiteStorage(Storage):
             "qts = COALESCE(excluded.qts, update_state.qts), "
             "date = COALESCE(excluded.date, update_state.date), "
             "seq = COALESCE(excluded.seq, update_state.seq)",
-            [(state.id, state.pts, state.qts, state.date, state.seq) for state in states],
+            rows,
         )
 
     async def delete_update_state(self, state_id):

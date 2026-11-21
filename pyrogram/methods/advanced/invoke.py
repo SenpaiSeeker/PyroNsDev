@@ -22,7 +22,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import pyrogram
-from pyrogram import raw
+from pyrogram import raw, utils
 
 if TYPE_CHECKING:
     from pyrogram.raw.core import ReturnType, TLObject
@@ -114,7 +114,24 @@ class Invoke:
             retry_delay=retry_delay if retry_delay is not None else self.retry_delay,
         )
 
-        await self.fetch_peers(getattr(r, "users", []))
-        await self.fetch_peers(getattr(r, "chats", []))
+        users = getattr(r, "users", []) or []
+        chats = getattr(r, "chats", []) or []
+        if users or chats:
+            async def unknown(peers):
+                out = []
+                for peer in peers:
+                    try:
+                        pid = utils.get_peer_id(peer)
+                    except Exception:
+                        out.append(peer)
+                        continue
+                    try:
+                        await self.storage.get_peer_by_id(pid)
+                    except KeyError:
+                        out.append(peer)
+                return out
+
+            await self.fetch_peers(await unknown(users))
+            await self.fetch_peers(await unknown(chats))
 
         return r
