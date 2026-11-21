@@ -174,6 +174,7 @@ class Session:
         # Never cleared: a stopped session is replaced rather than started again, since
         #  every caller that stops one then asks `Client.get_session()` to build a fresh one.
         self._must_stay_stopped: bool = False
+        self._internal_stop: bool = False
 
     @property
     def state(self) -> SessionState:
@@ -295,6 +296,9 @@ class Session:
                 await asyncio.sleep(2)
                 continue
             except Exception as e:
+                # An internal failure during start must not permanently kill the
+                # session: flag it so restart() can clear _must_stay_stopped.
+                self._internal_stop = True
                 await self.stop()
                 raise e
             else:
@@ -385,7 +389,11 @@ class Session:
     async def restart(self):
         async with self.restart_lock:
             if self._must_stay_stopped:
-                return
+                if self._internal_stop:
+                    self._internal_stop = False
+                    self._must_stay_stopped = False
+                else:
+                    return
 
             if self.is_started.is_set() and self._state == SessionState.STARTED:
                 return
