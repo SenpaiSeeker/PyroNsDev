@@ -785,7 +785,12 @@ class Session:
                     str(e) or repr(e),
                 )
 
-                if isinstance(e, OSError) and attempt == 1 and attempt < retries:
+                if (
+                    isinstance(e, OSError)
+                    and attempt == 1
+                    and attempt < retries
+                    and not query_name.startswith("auth.")
+                ):
                     try:
                         asyncio.create_task(self.restart())
                     except Exception:
