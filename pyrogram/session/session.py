@@ -736,7 +736,7 @@ class Session:
                     if attempt < retries:
                         if attempt == 1:
                             try:
-                                await self.restart()
+                                asyncio.create_task(self.restart())
                             except Exception:
                                 pass
                         await asyncio.sleep(1)
@@ -770,7 +770,7 @@ class Session:
 
                 if isinstance(e, OSError) and attempt == 1 and attempt < retries:
                     try:
-                        await self.restart()
+                        asyncio.create_task(self.restart())
                     except Exception:
                         pass
 
