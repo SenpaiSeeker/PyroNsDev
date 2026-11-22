@@ -23,13 +23,18 @@ log = logging.getLogger(__name__)
 
 
 class MsgId:
-    last_time = 0
-    offset = 0
+    # Stable port from Kurigram: high-resolution, strictly monotonic ids.
+    # Navy's 1-second resolution + shared offset can collide when many clients
+    # send in the same second (random_id duplicates).
+    _last_msg_id = 0
 
     def __new__(cls) -> int:
-        now = int(time.time())
-        cls.offset = (cls.offset + 4) if now == cls.last_time else 0
-        msg_id = (now * 2 ** 32) + cls.offset
-        cls.last_time = now
+        now = time.time()
+        base_msg_id = int(now * (2 ** 32)) & ~0b11
 
-        return msg_id
+        if base_msg_id <= cls._last_msg_id:
+            base_msg_id = cls._last_msg_id + 4
+
+        cls._last_msg_id = base_msg_id
+
+        return base_msg_id
