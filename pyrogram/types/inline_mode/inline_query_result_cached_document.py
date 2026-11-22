@@ -16,13 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Optional, List
 
 import pyrogram
-from pyrogram import enums, raw, types, utils
-
-from ...file_id import FileId
+from pyrogram import raw, types, utils, enums
 from .inline_query_result import InlineQueryResult
+from ...file_id import FileId
 
 
 class InlineQueryResultCachedDocument(InlineQueryResult):
@@ -66,13 +65,13 @@ class InlineQueryResultCachedDocument(InlineQueryResult):
         self,
         document_file_id: str,
         title: str,
-        id: str | None = None,
-        description: str | None = None,
+        id: str = None,
+        description: str = None,
         caption: str = "",
-        parse_mode: enums.ParseMode | None = None,
-        caption_entities: list[types.MessageEntity] | None = None,
-        reply_markup: types.InlineKeyboardMarkup | None = None,
-        input_message_content: types.InputMessageContent | None = None,
+        parse_mode: Optional["enums.ParseMode"] = None,
+        caption_entities: List["types.MessageEntity"] = None,
+        reply_markup: "types.InlineKeyboardMarkup" = None,
+        input_message_content: "types.InputMessageContent" = None
     ):
         super().__init__("file", id, input_message_content, reply_markup)
 
@@ -85,12 +84,10 @@ class InlineQueryResultCachedDocument(InlineQueryResult):
         self.reply_markup = reply_markup
         self.input_message_content = input_message_content
 
-    async def write(self, client: pyrogram.Client):
-        message, entities = (
-            await utils.parse_text_entities(
-                client, self.caption, self.parse_mode, self.caption_entities
-            )
-        ).values()
+    async def write(self, client: "pyrogram.Client"):
+        message, entities = (await utils.parse_text_entities(
+            client, self.caption, self.parse_mode, self.caption_entities
+        )).values()
 
         file_id = FileId.decode(self.document_file_id)
 
@@ -108,11 +105,9 @@ class InlineQueryResultCachedDocument(InlineQueryResult):
                 await self.input_message_content.write(client, self.reply_markup)
                 if self.input_message_content
                 else raw.types.InputBotInlineMessageMediaAuto(
-                    reply_markup=await self.reply_markup.write(client)
-                    if self.reply_markup
-                    else None,
+                    reply_markup=await self.reply_markup.write(client) if self.reply_markup else None,
                     message=message,
-                    entities=entities,
+                    entities=entities
                 )
-            ),
+            )
         )

@@ -1,61 +1,32 @@
 <p align="center">
-    <a href="https://github.com/kurigram-org/kurigram">
-        <img
-            src="https://raw.githubusercontent.com/kurigram-org/artwork/master/kurigram_logo_github.png"
-            alt="Kurigram"
-            height="128"
-        />
+    <a href="https://github.com/pyrogram/pyrogram">
+        <img src="https://docs.pyrogram.org/_static/pyrogram.png" alt="Pyrogram" width="128">
     </a>
-    <br />
+    <br>
     <b>Telegram MTProto API Framework for Python</b>
-    <br />
-    <a href="https://kurigram.icu"> Homepage </a>
-    •
-    <a href="https://docs.kurigram.icu"> Documentation </a>
-    •
-    <a href="https://t.me/kurigram_news"> News </a>
-    •
-    <a href="https://t.me/kurigram_chat"> Chat </a>
-    <br />
-    <br />
-    <img
-        src="https://img.shields.io/github/actions/workflow/status/kurigram-org/kurigram/python.yml?branch=dev&logo=github&label=CI"
-        alt="CI Tests"
-    />
-    <a href="https://pypi.python.org/pypi/kurigram">
-        <img
-            src="https://img.shields.io/pypi/v/kurigram.svg?logo=pypi&logoColor=white&color=%23f55b25"
-            alt="PyPI package version"
-        />
+    <br>
+    <a href="https://pyrogram.org">
+        Homepage
     </a>
-    <a href="https://pypi.python.org/pypi/kurigram">
-        <img
-            src="https://static.pepy.tech/badge/kurigram/month"
-            alt="Downloads"
-        />
+    •
+    <a href="https://docs.pyrogram.org">
+        Documentation
     </a>
-    <a href="https://pypi.python.org/pypi/kurigram">
-        <img
-            src="https://img.shields.io/pypi/pyversions/kurigram.svg?logo=python&logoColor=white&color=%23fd5216"
-            alt="Python versions"
-        />
+    •
+    <a href="https://docs.pyrogram.org/releases">
+        Releases
     </a>
-    <a href="https://github.com/kurigram-org/kurigram/blob/dev/COPYING">
-        <img
-            src="https://img.shields.io/github/license/kurigram-org/kurigram.svg?color=%23fd5216"
-            alt="License"
-        />
+    •
+    <a href="https://t.me/pyrogram">
+        News
     </a>
 </p>
 
-
-## Kurigram
+## Pyrogram
 
 > Elegant, modern and asynchronous Telegram MTProto API framework in Python for users and bots
 
-Kurigram is an actively maintained pyrogram fork for Python designed as a drop-in replacement for Pyrogram, Kurigram provides support for the latest Telegram features including Gifts, Stories, Topics, Business Accounts, and more.
-
-```python
+``` python
 from pyrogram import Client, filters
 
 app = Client("my_account")
@@ -63,59 +34,42 @@ app = Client("my_account")
 
 @app.on_message(filters.private)
 async def hello(client, message):
-    await message.reply("Hello from Kurigram!")
+    await message.reply("Hello from Pyrogram!")
 
 
 app.run()
 ```
 
-**Kurigram** is a modern, elegant and asynchronous [MTProto API](https://docs.kurigram.icu/topics/mtproto-vs-botapi)
+**Pyrogram** is a modern, elegant and asynchronous [MTProto API](https://docs.pyrogram.org/topics/mtproto-vs-botapi)
 framework. It enables you to easily interact with the main Telegram API through a user account (custom client) or a bot
 identity (bot API alternative) using Python.
 
 ### Support
 
-Kurigram is an open source project. Your support helps us maintain and improve the library, consider supporting its development:
+If you'd like to support Pyrogram, you can consider:
 
-- `kurimuzonakuma.ton` - TON
-- `TYAY3cVST3NY5mqs1M2qGV6PjXDjLLeC6v` - USDT TRC20
-
-Thank you for supporting Kurigram ❤️
+- [Become a GitHub sponsor](https://github.com/sponsors/delivrance).
+- [Become a LiberaPay patron](https://liberapay.com/delivrance).
+- [Become an OpenCollective backer](https://opencollective.com/pyrogram).
 
 ### Key Features
 
-- **Ready**: Install Kurigram with pip and start building your applications right away.
+- **Ready**: Install Pyrogram with pip and start building your applications right away.
 - **Easy**: Makes the Telegram API simple and intuitive, while still allowing advanced usages.
 - **Elegant**: Low-level details are abstracted and re-presented in a more convenient way.
-- **Fast**: Boosted up by [kuricrypt](https://github.com/kurigram-org/kuricrypt), a high-performance cryptography library written in Rust.
+- **Fast**: Boosted up by [TgCrypto](https://github.com/pyrogram/tgcrypto), a high-performance cryptography library written in C.  
 - **Type-hinted**: Types and methods are all type-hinted, enabling excellent editor support.
 - **Async**: Fully asynchronous (also usable synchronously if wanted, for convenience).
 - **Powerful**: Full access to Telegram's API to execute any official client action and more.
 
 ### Installing
 
-Stable version
-
 ``` bash
-pip install kurigram
-```
-
-Dev version
-
-``` bash
-pip install https://github.com/kurigram-org/kurigram/archive/main.zip --force-reinstall
-```
-
-Optional dependencies
-
-``` bash
-pip install kurigram[fast]     # kuricrypt and uvloop for better performance
-pip install kurigram[qrcode]   # QR code login support
+pip3 install pyrogram
 ```
 
 ### Resources
 
-- Check out the [docs](https://docs.kurigram.icu) to learn more about Kurigram, get started right
+- Check out the docs at https://docs.pyrogram.org to learn more about Pyrogram, get started right
 away and discover more in-depth material for building your client applications.
-- Join the [official channel](https://t.me/kurigram_news) and stay tuned for news, updates and announcements.
-- Join the [official chat](https://t.me/kurigram_chat) to communicate with people.
+- Join the official channel at https://t.me/pyrogram and stay tuned for news, updates and announcements.

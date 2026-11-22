@@ -16,28 +16,25 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import html
 import logging
 import re
 from html.parser import HTMLParser
+from typing import Optional
 
 import pyrogram
-from pyrogram import raw, types
+from pyrogram import raw
 from pyrogram.enums import MessageEntityType
 from pyrogram.errors import PeerIdInvalid
-
 from . import utils
 
 log = logging.getLogger(__name__)
 
 
 class Parser(HTMLParser):
-    # TODO: <span class="tg-spoiler"> <pre><code class="language-...">
     MENTION_RE = re.compile(r"tg://user\?id=(\d+)")
 
-    def __init__(self, client: pyrogram.Client):
+    def __init__(self, client: "pyrogram.Client"):
         super().__init__()
 
         self.client = client
@@ -54,19 +51,19 @@ class Parser(HTMLParser):
             entity = raw.types.MessageEntityBold
         elif tag in ["i", "em"]:
             entity = raw.types.MessageEntityItalic
-        elif tag in ["u", "ins"]:
+        elif tag == "u":
             entity = raw.types.MessageEntityUnderline
         elif tag in ["s", "del", "strike"]:
             entity = raw.types.MessageEntityStrike
         elif tag == "blockquote":
             entity = raw.types.MessageEntityBlockquote
-            extra["collapsed"] = "expandable" in attrs
+            extra["collapsed"] = bool("expandable" in attrs.keys())
         elif tag == "code":
             entity = raw.types.MessageEntityCode
         elif tag == "pre":
             entity = raw.types.MessageEntityPre
             extra["language"] = attrs.get("language", "")
-        elif tag in ["spoiler", "tg-spoiler"]:
+        elif tag == "spoiler":
             entity = raw.types.MessageEntitySpoiler
         elif tag == "a":
             url = attrs.get("href", "")
@@ -76,46 +73,13 @@ class Parser(HTMLParser):
             if mention:
                 entity = raw.types.InputMessageEntityMentionName
                 extra["user_id"] = int(mention.group(1))
-            elif url.startswith("mailto:"):
-                entity = raw.types.MessageEntityEmail
             else:
                 entity = raw.types.MessageEntityTextUrl
                 extra["url"] = url
-        elif tag in ["emoji", "tg-emoji"]:
+        elif tag == "emoji":
             entity = raw.types.MessageEntityCustomEmoji
-            custom_emoji_id = attrs.get("emoji-id") if tag == "tg-emoji" else attrs.get("id")
-            extra["document_id"] = int(custom_emoji_id)
-        elif tag == "tg-time":
-            entity = raw.types.MessageEntityFormattedDate
-            extra["date"] = int(attrs.get("unix"))
-            date_time_format = attrs.get("format", "")
-
-            extra["relative"] = False
-            extra["short_time"] = False
-            extra["long_time"] = False
-            extra["short_date"] = False
-            extra["long_date"] = False
-            extra["day_of_week"] = False
-
-            if date_time_format:
-                if not re.fullmatch(r"r|w?[dD]?[tT]?", date_time_format):
-                    raise ValueError(f"Invalid date-time format string: '{date_time_format}'")
-
-                if date_time_format == "r":
-                    extra["relative"] = True
-                else:
-                    if "w" in date_time_format:
-                        extra["day_of_week"] = True
-
-                    if "d" in date_time_format:
-                        extra["short_date"] = True
-                    elif "D" in date_time_format:
-                        extra["long_date"] = True
-
-                    if "t" in date_time_format:
-                        extra["short_time"] = True
-                    elif "T" in date_time_format:
-                        extra["long_time"] = True
+            custom_emoji_id = int(attrs.get("id"))
+            extra["document_id"] = custom_emoji_id
         else:
             return
 
@@ -150,10 +114,10 @@ class Parser(HTMLParser):
 
 
 class HTML:
-    def __init__(self, client: pyrogram.Client | None):
+    def __init__(self, client: Optional["pyrogram.Client"]):
         self.client = client
 
-    async def parse(self, text: str) -> dict:
+    async def parse(self, text: str):
         # Strip whitespaces from the beginning and the end, but preserve closing tags
         text = re.sub(r"^\s*(<[\w<>=\s\"]*>)\s*", r"\1", text)
         text = re.sub(r"\s*(</[\w</>]*>)\s*$", r"\1", text)
@@ -187,12 +151,12 @@ class HTML:
 
         return {
             "message": utils.remove_surrogates(parser.text),
-            "entities": sorted(entities, key=lambda e: e.offset) or None,
+            "entities": sorted(entities, key=lambda e: e.offset) or None
         }
 
     @staticmethod
-    def unparse(text: str, entities: list[types.MessageEntity]) -> str:
-        def parse_one(entity: types.MessageEntity):
+    def unparse(text: str, entities: list):
+        def parse_one(entity):
             """
             Parses a single entity and returns (start_tag, start), (end_tag, end)
             """
@@ -214,13 +178,13 @@ class HTML:
                 language = getattr(entity, "language", "") or ""
                 start_tag = f'<{name} language="{language}">' if language else f"<{name}>"
                 end_tag = f"</{name}>"
-            elif entity_type == MessageEntityType.BLOCKQUOTE:
-                name = entity_type.name.lower()
-                expandable = getattr(entity, "expandable", False)
-                start_tag = f"<{name}{' expandable' if expandable else ''}>"
+            elif entity_type == MessageEntityType.EXPANDABLE_BLOCKQUOTE:
+                name = "blockquote"
+                start_tag = f"<{name} expandable>"
                 end_tag = f"</{name}>"
             elif entity_type in (
                 MessageEntityType.CODE,
+                MessageEntityType.BLOCKQUOTE,
                 MessageEntityType.SPOILER,
             ):
                 name = entity_type.name.lower()
@@ -236,20 +200,10 @@ class HTML:
                 end_tag = "</a>"
             elif entity_type == MessageEntityType.CUSTOM_EMOJI:
                 custom_emoji_id = entity.custom_emoji_id
-                start_tag = f'<tg-emoji emoji-id="{custom_emoji_id}">'
-                end_tag = "</tg-emoji>"
-            elif entity_type == MessageEntityType.DATE_TIME:
-                unix_time = entity.unix_time
-                date_time_format = entity.date_time_format
-
-                if date_time_format:
-                    start_tag = f'<tg-time unix="{unix_time}" format="{date_time_format}">'
-                else:
-                    start_tag = f'<tg-time unix="{unix_time}">'
-
-                end_tag = "</tg-time>"
+                start_tag = f'<emoji id="{custom_emoji_id}">'
+                end_tag = "</emoji>"
             else:
-                return None
+                return
 
             return (start_tag, start), (end_tag, end)
 
@@ -288,12 +242,7 @@ class HTML:
             last_offset = entities_offsets[-1][1]
             # no need to sort, but still add entities starting from the end
             for entity, offset in reversed(entities_offsets):
-                text = (
-                    text[:offset]
-                    + entity
-                    + html.escape(text[offset:last_offset])
-                    + text[last_offset:]
-                )
+                text = text[:offset] + entity + html.escape(text[offset:last_offset]) + text[last_offset:]
                 last_offset = offset
 
         return utils.remove_surrogates(text)

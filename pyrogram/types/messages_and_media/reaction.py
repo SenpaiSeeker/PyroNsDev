@@ -16,11 +16,10 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Optional
 
 import pyrogram
 from pyrogram import raw
-
 from ..object import Object
 
 
@@ -31,7 +30,7 @@ class Reaction(Object):
         emoji (``str``, *optional*):
             Reaction emoji.
 
-        custom_emoji_id (``str``, *optional*):
+        custom_emoji_id (``int``, *optional*):
             Custom emoji id.
 
         count (``int``, *optional*):
@@ -40,20 +39,16 @@ class Reaction(Object):
         chosen_order (``int``, *optional*):
             Chosen reaction order.
             Available for chosen reactions.
-
-        is_paid (``bool``, *optional*):
-            True, if reaction is paid.
     """
 
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
-        emoji: str | None = None,
-        custom_emoji_id: str | None = None,
-        count: int | None = None,
-        chosen_order: int | None = None,
-        is_paid: bool | None = None,
+        client: "pyrogram.Client" = None,
+        emoji: Optional[str] = None,
+        custom_emoji_id: Optional[int] = None,
+        count: Optional[int] = None,
+        chosen_order: Optional[int] = None
     ):
         super().__init__(client)
 
@@ -61,32 +56,39 @@ class Reaction(Object):
         self.custom_emoji_id = custom_emoji_id
         self.count = count
         self.chosen_order = chosen_order
-        self.is_paid = is_paid
 
-    # `None` input and `ReactionEmpty` both mean "no reaction", so the optional
-    #  contract is the real one: `StoryView` already passes a maybe-missing value.
     @staticmethod
-    def _parse(client: pyrogram.Client, reaction: raw.base.Reaction | None) -> Reaction | None:
+    def _parse(
+        client: "pyrogram.Client",
+        reaction: "raw.base.Reaction"
+    ) -> "Reaction":
         if isinstance(reaction, raw.types.ReactionEmoji):
-            return Reaction(client=client, emoji=reaction.emoticon)
+            return Reaction(
+                client=client,
+                emoji=reaction.emoticon
+            )
 
         if isinstance(reaction, raw.types.ReactionCustomEmoji):
-            return Reaction(client=client, custom_emoji_id=str(reaction.document_id))
-
-        if isinstance(reaction, raw.types.ReactionPaid):
-            return Reaction(client=client, is_paid=True)
-
-        return None
+            return Reaction(
+                client=client,
+                custom_emoji_id=reaction.document_id
+            )
 
     @staticmethod
-    def _parse_count(client: pyrogram.Client, reaction_count: raw.base.ReactionCount) -> Reaction:
+    def _parse_count(
+        client: "pyrogram.Client",
+        reaction_count: "raw.base.ReactionCount"
+    ) -> "Reaction":
+        if reaction_count is None:
+            return None
+        
+        if reaction_count.count is None:
+            return None
+        
         reaction = Reaction._parse(client, reaction_count.reaction)
-
-        # A `ReactionCount` always carries a concrete reaction, never an empty one.
-        if reaction is None:
-            raise ValueError("The reaction count carries no reaction")
-
-        reaction.count = reaction_count.count
-        reaction.chosen_order = reaction_count.chosen_order
+        
+        if reaction is not None:
+            reaction.count = reaction_count.count
+            reaction.chosen_order = getattr(reaction_count, 'chosen_order', None)
 
         return reaction

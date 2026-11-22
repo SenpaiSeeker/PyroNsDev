@@ -16,18 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import List
 
 import pyrogram
 from pyrogram import raw, utils
 from pyrogram import types
 from pyrogram.file_id import FileId, FileType, FileUniqueId, FileUniqueType
 from ..object import Object
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class VideoNote(Object):
@@ -56,9 +52,6 @@ class VideoNote(Object):
         date (:py:obj:`~datetime.datetime`, *optional*):
             Date the video note was sent.
 
-        ttl_seconds (``int``, *optional*):
-            Time-to-live seconds, for one-time media.
-
         thumbs (List of :obj:`~pyrogram.types.Thumbnail`, *optional*):
             Video thumbnails.
     """
@@ -66,16 +59,15 @@ class VideoNote(Object):
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
+        client: "pyrogram.Client" = None,
         file_id: str,
         file_unique_id: str,
         length: int,
         duration: int,
-        thumbs: list[types.Thumbnail] | None = None,
-        mime_type: str | None = None,
-        file_size: int | None = None,
-        date: datetime | None = None,
-        ttl_seconds: int | None = None,
+        thumbs: List["types.Thumbnail"] = None,
+        mime_type: str = None,
+        file_size: int = None,
+        date: datetime = None
     ):
         super().__init__(client)
 
@@ -84,7 +76,6 @@ class VideoNote(Object):
         self.mime_type = mime_type
         self.file_size = file_size
         self.date = date
-        self.ttl_seconds = ttl_seconds
         self.length = length
         self.duration = duration
         self.thumbs = thumbs
@@ -92,27 +83,26 @@ class VideoNote(Object):
     @staticmethod
     def _parse(
         client,
-        video_note: raw.types.Document,
-        video_attributes: raw.types.DocumentAttributeVideo,
-        ttl_seconds: int | None = None,
-    ) -> VideoNote:
+        video_note: "raw.types.Document",
+        video_attributes: "raw.types.DocumentAttributeVideo"
+    ) -> "VideoNote":
         return VideoNote(
             file_id=FileId(
                 file_type=FileType.VIDEO_NOTE,
                 dc_id=video_note.dc_id,
                 media_id=video_note.id,
                 access_hash=video_note.access_hash,
-                file_reference=video_note.file_reference,
+                file_reference=video_note.file_reference
             ).encode(),
             file_unique_id=FileUniqueId(
-                file_unique_type=FileUniqueType.DOCUMENT, media_id=video_note.id
+                file_unique_type=FileUniqueType.DOCUMENT,
+                media_id=video_note.id
             ).encode(),
             length=video_attributes.w,
             duration=video_attributes.duration,
             file_size=video_note.size,
             mime_type=video_note.mime_type,
             date=utils.timestamp_to_datetime(video_note.date),
-            ttl_seconds=ttl_seconds,
             thumbs=types.Thumbnail._parse(client, video_note),
-            client=client,
+            client=client
         )

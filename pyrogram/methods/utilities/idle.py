@@ -25,7 +25,8 @@ log = logging.getLogger(__name__)
 
 # Signal number to name
 signals = {
-    k: v for v, k in signal.__dict__.items() if v.startswith("SIG") and not v.startswith("SIG_")
+    k: v for v, k in signal.__dict__.items()
+    if v.startswith("SIG") and not v.startswith("SIG_")
 }
 
 
@@ -68,29 +69,19 @@ async def idle():
 
             asyncio.run(main())
     """
-    # The handler runs on whatever thread the signal is delivered to, so the loop it has
-    #  to reach is captured here, where we are provably inside it.
-    loop = asyncio.get_running_loop()
     task = None
 
     def signal_handler(signum, __):
-        log.info(f"Stop signal received ({signals[signum]}). Exiting...")
-        loop.call_soon_threadsafe(task.cancel)
+        logging.info(f"Stop signal received ({signals[signum]}). Exiting...")
+        task.cancel()
 
-    # Handed back in the `finally` below: the handler closes over this loop, and the caller
-    #  closes it. A signal arriving after `run()` returned died with `RuntimeError: Event
-    #  loop is closed`, raised out of the handler itself.
-    replaced = {number: signal_fn(number, signal_handler) for number in (SIGINT, SIGTERM, SIGABRT)}
+    for s in (SIGINT, SIGTERM, SIGABRT):
+        signal_fn(s, signal_handler)
 
-    try:
-        while True:
-            task = asyncio.create_task(asyncio.sleep(600))
+    while True:
+        task = asyncio.create_task(asyncio.sleep(600))
 
-            try:
-                await task
-            except asyncio.CancelledError:
-                break
-
-    finally:
-        for number, handler in replaced.items():
-            signal_fn(number, handler)
+        try:
+            await task
+        except asyncio.CancelledError:
+            break

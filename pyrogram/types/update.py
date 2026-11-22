@@ -16,16 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import NoReturn
-
 import pyrogram
 
 
 class Update:
-    def stop_propagation(self) -> NoReturn:
+    def stop_propagation(self):
         raise pyrogram.StopPropagation
 
-    def continue_propagation(self) -> NoReturn:
+    def continue_propagation(self):
         raise pyrogram.ContinuePropagation

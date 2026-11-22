@@ -16,22 +16,21 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
-from pyrogram import raw, types
+from pyrogram import raw
+from pyrogram import types
+from typing import Union
 
 
 class CreateForumTopic:
     async def create_forum_topic(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        name: str,
-        icon_color: int | None = None,
-        icon_custom_emoji_id: str | None = None,
-    ) -> types.ForumTopic:
-        """Use this method to create a topic in a forum supergroup chat or a private chat with a user.
-        In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the `can_manage_topics` administrator right.
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        title: str,
+        icon_color: int = None,
+        icon_emoji_id: int = None
+    ) -> "types.ForumTopicCreated":
+        """Create a new forum topic.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
@@ -39,44 +38,31 @@ class CreateForumTopic:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
 
-            name (``str``):
-                Topic name, 1-128 characters.
+            title (``str``):
+                The forum topic title.
 
             icon_color (``int``, *optional*):
-                Color of the topic icon in RGB format.
-                Currently, must be one of 7322096 (0x6FB9F0), 16766590 (0xFFD67E), 13338331 (0xCB86DB), 9367192 (0x8EEE98), 16749490 (0xFF93B2), or 16478047 (0xFB6F5F).
+                The color of forum topic icon.
 
-            icon_custom_emoji_id (``str``, *optional*):
-                Unique identifier of the custom emoji shown as the topic icon.
+            icon_emoji_id (``int``, *optional*):
+                Unique identifier of the custom emoji shown as the topic icon
 
         Returns:
-            :obj:`~pyrogram.types.ForumTopic`: On success, information about the created topic is returned.
+            :obj:`~pyrogram.types.ForumTopicCreated`: On success, a forum_topic_created object is returned.
 
         Example:
             .. code-block:: python
 
-                await app.create_forum_topic(chat_id=chat_id, name="Topic Name")
+                await app.create_forum_topic("Topic Title")
         """
         r = await self.invoke(
-            raw.functions.messages.CreateForumTopic(
-                peer=await self.resolve_peer(chat_id),
-                title=name,
+            raw.functions.channels.CreateForumTopic(
+                channel=await self.resolve_peer(chat_id),
+                title=title,
                 random_id=self.rnd_id(),
                 icon_color=icon_color,
-                icon_emoji_id=int(icon_custom_emoji_id)
-                if icon_custom_emoji_id is not None
-                else None,
+                icon_emoji_id=icon_emoji_id
             )
         )
 
-        users = {i.id: i for i in r.users}
-        chats = {i.id: i for i in r.chats}
-
-        topic = await types.ForumTopic._parse_message(
-            client=self, message=r.updates[1].message, users=users, chats=chats
-        )
-        # The reply always carries the `MessageActionTopicCreate` service message.
-        if topic is None:
-            raise ValueError("The server answered without a topic creation message")
-
-        return topic
+        return types.ForumTopicCreated._parse(r.updates[1].message)

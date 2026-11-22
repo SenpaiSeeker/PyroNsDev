@@ -16,16 +16,18 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import raw
 
 
 class SetChatProtectedContent:
     async def set_chat_protected_content(
-        self: pyrogram.Client, chat_id: int | str, enabled: bool
-    ) -> types.Message | bool:
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        enabled: bool
+    ) -> bool:
         """Set the chat protected content setting.
 
         .. include:: /_includes/usable-by/users-bots.rst
@@ -38,14 +40,14 @@ class SetChatProtectedContent:
                 Pass True to enable the protected content setting, False to disable.
 
         Returns:
-            :obj:`~pyrogram.types.Message` | ``bool``: On success, a service message will be returned (when applicable),
-            otherwise, in case a message object couldn't be returned, True is returned.
+            ``bool``: On success, True is returned.
         """
 
-        r = await self.invoke(
+        await self.invoke(
             raw.functions.messages.ToggleNoForwards(
-                peer=await self.resolve_peer(chat_id), enabled=enabled
+                peer=await self.resolve_peer(chat_id),
+                enabled=enabled
             )
         )
 
-        return next(iter(await utils.parse_messages(client=self, messages=r)), True)
+        return True

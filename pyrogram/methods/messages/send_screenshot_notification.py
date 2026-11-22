@@ -1,5 +1,5 @@
 #  Pyrogram - Telegram MTProto API Client Library for Python
-#  Copyright (C) 2017-present Dan <https://github.com/delivrance>
+#  Copyright (C) 2017-present <https://github.com/TelegramPlayground>
 #
 #  This file is part of Pyrogram.
 #
@@ -16,19 +16,20 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import types, raw, utils
 
 
 class SendScreenshotNotification:
     async def send_screenshot_notification(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        reply_parameters: types.ReplyParameters | None = None,
-    ) -> types.Message | None:
-        """Notify the other user in a private chat that a screenshot of the chat was taken.
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        message_thread_id: int = None,
+        reply_parameters: "types.ReplyParameters" = None,
+    ) -> "types.Message":
+        """Notify the other user in a chat that screenshot of the chat was taken.
 
         .. include:: /_includes/usable-by/users.rst
 
@@ -38,24 +39,40 @@ class SendScreenshotNotification:
                 For your personal cloud (Saved Messages) you can simply use "me" or "self".
                 For a contact that exists in your Telegram address book you can use his phone number (str).
 
+            message_thread_id (``int``, *optional*):
+                If the message is in a thread, ID of the original message.
+
             reply_parameters (:obj:`~pyrogram.types.ReplyParameters`, *optional*):
-                Describes reply parameters for the message that is being sent.
+                Description of the message to reply to
 
         Returns:
-            :obj:`~pyrogram.types.Message` | ``None``: On success, the sent service message is returned,
-            otherwise, in case the server answered with no message, None is returned.
+            :obj:`~pyrogram.types.Message`: On success, the sent service message is returned.
+
         """
 
+        reply_to = await utils._get_reply_message_parameters(
+            self,
+            message_thread_id,
+            reply_parameters
+        )
         r = await self.invoke(
             raw.functions.messages.SendScreenshotNotification(
                 peer=await self.resolve_peer(chat_id),
-                reply_to=await utils.get_reply_to(self, reply_parameters)
-                if reply_parameters
-                else raw.types.InputReplyToMessage(reply_to_msg_id=0),
-                random_id=self.rnd_id(),
+                reply_to=reply_to,
+                random_id=self.rnd_id()
             )
         )
 
-        messages = await utils.parse_messages(client=self, messages=r)
-
-        return messages[0] if messages else None
+        for i in r.updates:
+            if isinstance(
+                i,
+                (
+                    raw.types.UpdateNewMessage,
+                    raw.types.UpdateNewChannelMessage
+                )
+            ):
+                return await types.Message._parse(
+                    self, i.message,
+                    {i.id: i for i in r.users},
+                    {i.id: i for i in r.chats}
+                )

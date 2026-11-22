@@ -16,29 +16,23 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
-
-from collections.abc import AsyncGenerator
+from typing import Union, List, AsyncGenerator, Optional
 
 import pyrogram
-from pyrogram import raw, types
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+from pyrogram import raw
+from pyrogram import types
 
 
 class GetChatEventLog:
     async def get_chat_event_log(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         query: str = "",
         offset_id: int = 0,
         limit: int = 0,
-        filters: types.ChatEventLogFilters | None = None,
-        user_ids: list[int | str] | None = None,
-    ) -> AsyncGenerator[types.ChatEvent, None]:
+        filters: "types.ChatEventFilter" = None,
+        user_ids: List[Union[int, str]] = None
+    ) -> Optional[AsyncGenerator["types.ChatEvent", None]]:
         """Get the actions taken by chat members and administrators in the last 48h.
 
         Only available for supergroups and channels. Requires administrator rights.
@@ -62,7 +56,7 @@ class GetChatEventLog:
                 Maximum amount of events to be returned.
                 By default, all events will be returned.
 
-            filters (:obj:`~pyrogram.types.ChatEventLogFilters`, *optional*):
+            filters (:obj:`~pyrogram.types.ChatEventFilter`, *optional*):
                 The types of events to return.
                 By default, all types will be returned.
 
@@ -76,18 +70,7 @@ class GetChatEventLog:
         Example:
             .. code-block:: python
 
-                # Get all events
                 async for event in app.get_chat_event_log(chat_id):
-                    print(event)
-
-                # Return only member join and leave events
-                async for event in app.get_chat_event_log(
-                    chat_id,
-                    filters=types.ChatEventLogFilters(
-                        member_joins=True,
-                        member_leaves=True
-                    )
-                ):
                     print(event)
         """
         current = 0
@@ -107,7 +90,7 @@ class GetChatEventLog:
                         [await self.resolve_peer(i) for i in user_ids]
                         if user_ids is not None
                         else user_ids
-                    ),
+                    )
                 )
             )
 
@@ -117,11 +100,8 @@ class GetChatEventLog:
             last = r.events[-1]
             offset_id = last.id
 
-            users = {i.id: i for i in r.users}
-            chats = {i.id: i for i in r.chats}
-
             for event in r.events:
-                yield await types.ChatEvent._parse(self, event, users, chats)
+                yield await types.ChatEvent._parse(self, event, r.users, r.chats)
 
                 current += 1
 

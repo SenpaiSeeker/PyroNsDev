@@ -16,41 +16,23 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import AsyncGenerator, Union, Optional
 
 import pyrogram
-from pyrogram import raw, types
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+from pyrogram import raw
+from pyrogram import types
 
 
 class GetAllStories:
     async def get_all_stories(
-        self: pyrogram.Client,
-        next: bool | None = None,
-        hidden: bool | None = None,
-        state: str | None = None,
-    ) -> AsyncGenerator[types.Story, None]:
-        """Get all active or hidden stories that displayed on the action bar on the homescreen.
+        self: "pyrogram.Client",
+        next: Optional[bool] = None,
+        hidden: Optional[bool] = None,
+        state: Optional[str] = None,
+    ) -> Optional[AsyncGenerator["types.Story", None]]:
+        """Get all active stories.
 
         .. include:: /_includes/usable-by/users.rst
-
-        Parameters
-            next (``bool``, *optional*):
-                If next and state are both set, uses the passed state to paginate to the next results.
-                If neither state nor next are set, fetches the initial page.
-                If state is set and next is not set, check for changes in the active/hidden peerset.
-
-            hidden (``bool``, *optional*):
-                If set, fetches the hidden active story list, otherwise fetches the active story list.
-
-            state (``str``, *optional*):
-                If next and state are both set, uses the passed state to paginate to the next results.
-                If neither state nor next are set, fetches the initial page.
-                If state is set and next is not set, check for changes in the active/hidden peerset.
 
         Returns:
             ``Generator``: On success, a generator yielding :obj:`~pyrogram.types.Story` objects is returned.
@@ -61,10 +43,17 @@ class GetAllStories:
                 # Get all active story
                 async for story in app.get_all_stories():
                     print(story)
+
+        Raises:
+            ValueError: In case of invalid arguments.
         """
 
         r = await self.invoke(
-            raw.functions.stories.GetAllStories(next=next, hidden=hidden, state=state)
+            raw.functions.stories.GetAllStories(
+                next=next,
+                hidden=hidden,
+                state=state
+            )
         )
 
         users = {i.id: i for i in r.users}
@@ -72,4 +61,10 @@ class GetAllStories:
 
         for peer_story in r.peer_stories:
             for story in peer_story.stories:
-                yield await types.Story._parse(self, story, peer_story.peer, users, chats)
+                yield await types.Story._parse(
+                    self,
+                    story,
+                    users,
+                    chats,
+                    peer_story.peer
+                )

@@ -16,55 +16,40 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import logging
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Union, List, Optional
 
 import pyrogram
-from pyrogram import enums, raw, types, utils
-
-if TYPE_CHECKING:
-    from datetime import datetime, timedelta
-
-log = logging.getLogger(__name__)
+from pyrogram import raw, enums, types
+from pyrogram import utils
 
 
 class SendCachedMedia:
     async def send_cached_media(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         file_id: str,
         caption: str = "",
-        parse_mode: enums.ParseMode | None = None,
-        caption_entities: list[types.MessageEntity] | None = None,
-        disable_notification: bool | None = None,
-        message_thread_id: int | None = None,
-        direct_messages_topic_id: int | None = None,
-        reply_parameters: types.ReplyParameters | None = None,
-        schedule_date: datetime | timedelta | None = None,
-        protect_content: bool | None = None,
-        has_spoiler: bool | None = None,
-        effect_id: int | None = None,
-        show_caption_above_media: bool | None = None,
-        business_connection_id: str | None = None,
-        allow_paid_broadcast: bool | None = None,
-        paid_message_star_count: int | None = None,
-        suggested_post_parameters: types.SuggestedPostParameters | None = None,
-        reply_markup: (
-            types.InlineKeyboardMarkup
-            | types.ReplyKeyboardMarkup
-            | types.ReplyKeyboardRemove
-            | types.ForceReply
-            | None
-        ) = None,
-        reply_to_message_id: int | None = None,
-        reply_to_chat_id: int | str | None = None,
-        reply_to_story_id: int | None = None,
-        quote_text: str | None = None,
-        quote_offset: int | None = None,
-        quote_entities: list[types.MessageEntity] | None = None,
-    ) -> types.Message | None:
+        parse_mode: Optional["enums.ParseMode"] = None,
+        caption_entities: List["types.MessageEntity"] = None,
+        disable_notification: bool = None,
+        message_thread_id: int = None,
+        reply_to_message_id: int = None,
+        reply_to_chat_id: Union[int, str] = None,
+        reply_to_story_id: int = None,
+        quote_text: str = None,
+        quote_entities: List["types.MessageEntity"] = None,
+        schedule_date: datetime = None,
+        protect_content: bool = None,
+        has_spoiler: bool = None,
+        invert_media: bool = None,
+        reply_markup: Union[
+            "types.InlineKeyboardMarkup",
+            "types.ReplyKeyboardMarkup",
+            "types.ReplyKeyboardRemove",
+            "types.ForceReply"
+        ] = None
+    ) -> Optional["types.Message"]:
         """Send any media stored on the Telegram servers using a file_id.
 
         This convenience method works with any valid file_id only.
@@ -90,7 +75,7 @@ class SendCachedMedia:
                 By default, texts are parsed using both Markdown and HTML styles.
                 You can combine both syntaxes together.
 
-            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
+            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`):
                 List of special entities that appear in the caption, which can be specified instead of *parse_mode*.
 
             disable_notification (``bool``, *optional*):
@@ -99,18 +84,22 @@ class SendCachedMedia:
 
             message_thread_id (``int``, *optional*):
                 Unique identifier for the target message thread (topic) of the forum.
-                For forums only.
+                for forum supergroups only.
 
-            direct_messages_topic_id (``int``, *optional*):
-                Unique identifier of the topic in a channel direct messages chat administered by the current user.
-                For direct chats only.
+            reply_to_message_id (``int``, *optional*):
+                If the message is a reply, ID of the original message.
 
-            reply_parameters (:obj:`~pyrogram.types.ReplyParameters`, *optional*):
-                Describes reply parameters for the message that is being sent.
+            reply_to_story_id (``int``, *optional*):
+                Unique identifier for the target story.
 
-            schedule_date (:py:obj:`~datetime.datetime` | :py:obj:`~datetime.timedelta`, *optional*):
+            quote_text (``str``):
+                Text of the quote to be sent.
+
+            quote_entities (List of :obj:`~pyrogram.types.MessageEntity`):
+                List of special entities that appear in quote text, which can be specified instead of *parse_mode*.
+
+            schedule_date (:py:obj:`~datetime.datetime`, *optional*):
                 Date when the message will be automatically sent.
-                A :py:obj:`~datetime.timedelta` is counted from now.
 
             protect_content (``bool``, *optional*):
                 Protects the contents of the sent message from forwarding and saving.
@@ -118,145 +107,53 @@ class SendCachedMedia:
             has_spoiler (``bool``, *optional*):
                 True, if the message media is covered by a spoiler animation.
 
-            effect_id (``int``, *optional*):
-                Unique identifier of the message effect.
-                For private chats only.
-
-            show_caption_above_media (``bool``, *optional*):
-                Pass True, if the caption must be shown above the message media.
-
-            business_connection_id (``str``, *optional*):
-                Unique identifier of the business connection on behalf of which the message will be sent.
-
-            allow_paid_broadcast (``bool``, *optional*):
-                If True, you will be allowed to send up to 1000 messages per second.
-                Ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message.
-                The relevant Stars will be withdrawn from the bot's balance.
-                For bots only.
-
-            paid_message_star_count (``int``, *optional*):
-                The number of Telegram Stars the user agreed to pay to send the messages.
-
-            suggested_post_parameters (:obj:`~pyrogram.types.SuggestedPostParameters`, *optional*):
-                Information about the suggested post.
+            invert_media (``bool``, *optional*):
+                Invert media.
 
             reply_markup (:obj:`~pyrogram.types.InlineKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardRemove` | :obj:`~pyrogram.types.ForceReply`, *optional*):
                 Additional interface options. An object for an inline keyboard, custom reply keyboard,
                 instructions to remove reply keyboard or to force a reply from the user.
 
-            reply_to_message_id (``int``, *optional*):
-                If the message is a reply, ID of the original message.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
-            reply_to_chat_id (``int`` | ``str``, *optional*):
-                Unique identifier (int) or username (str) of the chat holding the message that is replied to.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
-            reply_to_story_id (``int``, *optional*):
-                If the message is a reply to a story, ID of the story.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
-            quote_text (``str``, *optional*):
-                Text of the quoted part of the message that is replied to.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
-            quote_offset (``int``, *optional*):
-                Offset for quote in original message.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
-            quote_entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
-                List of special entities that appear in the quote, which can be specified instead of *parse_mode*.
-                This parameter is deprecated and should not be used.
-                Use `reply_parameters` instead.
-
         Returns:
-            :obj:`~pyrogram.types.Message` | ``None``: On success, the sent media message is returned, otherwise,
-            in case the server answered with no message, None is returned.
+            :obj:`~pyrogram.types.Message`: On success, the sent media message is returned.
 
         Example:
             .. code-block:: python
 
                 await app.send_cached_media("me", file_id)
         """
-        if any(
-            (
-                reply_to_message_id is not None,
-                reply_to_chat_id is not None,
-                reply_to_story_id is not None,
-                quote_text is not None,
-                quote_entities is not None,
-                quote_offset is not None,
-            )
-        ):
-            if reply_to_message_id is not None:
-                log.warning(
-                    "`reply_to_message_id` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
+        quote_text, quote_entities = (await utils.parse_text_entities(self, quote_text, parse_mode, quote_entities)).values()
 
-            if reply_to_chat_id is not None:
-                log.warning(
-                    "`reply_to_chat_id` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
-
-            if reply_to_story_id is not None:
-                log.warning(
-                    "`reply_to_story_id` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
-
-            if quote_text is not None:
-                log.warning(
-                    "`quote_text` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
-
-            if quote_entities is not None:
-                log.warning(
-                    "`quote_entities` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
-
-            if quote_offset is not None:
-                log.warning(
-                    "`quote_offset` is deprecated and will be removed in future updates. Use `reply_parameters` instead."
-                )
-
-            reply_parameters = types.ReplyParameters(
-                message_id=reply_to_message_id,
-                chat_id=reply_to_chat_id,
-                story_id=reply_to_story_id,
-                quote=quote_text,
-                quote_parse_mode=parse_mode,
-                quote_entities=quote_entities,
-                quote_position=quote_offset,
-            )
-
+        peer = await self.resolve_peer(chat_id)
         r = await self.invoke(
             raw.functions.messages.SendMedia(
-                peer=await self.resolve_peer(chat_id),
+                peer=peer,
                 media=utils.get_input_media_from_file_id(file_id, has_spoiler=has_spoiler),
-                silent=disable_notification,
-                invert_media=show_caption_above_media,
-                reply_to=await utils.get_reply_to(
-                    self, reply_parameters, message_thread_id, direct_messages_topic_id
+                silent=disable_notification or None,
+                invert_media=invert_media,
+                reply_to=utils.get_reply_to(
+                    reply_to_message_id=reply_to_message_id,
+                    message_thread_id=message_thread_id,
+                    reply_to_peer=await self.resolve_peer(reply_to_chat_id) if reply_to_chat_id else None,
+                    reply_to_story_id=reply_to_story_id,
+                    quote_text=quote_text,
+                    quote_entities=quote_entities,
                 ),
                 random_id=self.rnd_id(),
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 noforwards=protect_content,
-                allow_paid_floodskip=allow_paid_broadcast,
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
-                effect=effect_id,
-                allow_paid_stars=paid_message_star_count,
-                suggested_post=suggested_post_parameters.write()
-                if suggested_post_parameters
-                else None,
-                **await utils.parse_text_entities(self, caption, parse_mode, caption_entities),
-            ),
-            business_connection_id=business_connection_id,
+                **await utils.parse_text_entities(self, caption, parse_mode, caption_entities)
+            )
         )
 
-        messages = await utils.parse_messages(client=self, messages=r)
-
-        return messages[0] if messages else None
+        for i in r.updates:
+            if isinstance(i, (raw.types.UpdateNewMessage,
+                              raw.types.UpdateNewChannelMessage,
+                              raw.types.UpdateNewScheduledMessage)):
+                return await types.Message._parse(
+                    self, i.message,
+                    {i.id: i for i in r.users},
+                    {i.id: i for i in r.chats},
+                    is_scheduled=isinstance(i, raw.types.UpdateNewScheduledMessage)
+                )

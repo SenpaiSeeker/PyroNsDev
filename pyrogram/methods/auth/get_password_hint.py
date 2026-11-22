@@ -16,8 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import logging
 
 import pyrogram
@@ -28,14 +26,13 @@ log = logging.getLogger(__name__)
 
 class GetPasswordHint:
     async def get_password_hint(
-        self: pyrogram.Client,
-    ) -> str | None:
+        self: "pyrogram.Client",
+    ) -> str:
         """Get your Two-Step Verification password hint.
 
         .. include:: /_includes/usable-by/users.rst
 
         Returns:
-            ``str`` | ``None``: On success, the password hint as string is returned, otherwise, in case
-            no hint was set, None is returned.
+            ``str``: On success, the password hint as string is returned.
         """
         return (await self.invoke(raw.functions.account.GetPassword())).hint

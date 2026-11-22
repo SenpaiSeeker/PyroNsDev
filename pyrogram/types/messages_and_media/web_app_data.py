@@ -16,21 +16,15 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
-
+from pyrogram import raw
 from ..object import Object
-
-if TYPE_CHECKING:
-    from pyrogram import raw
 
 
 class WebAppData(Object):
     """Contains data sent from a `Web App <https://core.telegram.org/bots/webapps>`_ to the bot.
 
     Parameters:
-        data (``str``, *optional*):
+        data (``str``):
             The data.
 
         button_text (``str``):
@@ -41,7 +35,7 @@ class WebAppData(Object):
     def __init__(
         self,
         *,
-        data: str | None,
+        data: str,
         button_text: str,
     ):
         super().__init__()
@@ -50,7 +44,8 @@ class WebAppData(Object):
         self.button_text = button_text
 
     @staticmethod
-    def _parse(
-        action: raw.types.MessageActionWebViewDataSent | raw.types.MessageActionWebViewDataSentMe,
-    ):
-        return WebAppData(data=getattr(action, "data", None), button_text=action.text)
+    def _parse(action: "raw.types.MessageActionWebViewDataSentMe"):
+        return WebAppData(
+            data=action.data,
+            button_text=action.text
+        )

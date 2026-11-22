@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
 from pyrogram import raw
@@ -25,11 +25,11 @@ from pyrogram import types
 
 class StopPoll:
     async def stop_poll(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         message_id: int,
-        reply_markup: types.InlineKeyboardMarkup | None = None,
-    ) -> types.Poll:
+        reply_markup: "types.InlineKeyboardMarkup" = None
+    ) -> "types.Poll":
         """Stop a poll which was sent by you.
 
         Stopped polls can't be reopened and nobody will be able to vote in it anymore.
@@ -56,7 +56,7 @@ class StopPoll:
 
                 await app.stop_poll(chat_id, message_id)
         """
-        poll = (await self.get_messages(chat_id=chat_id, message_ids=message_id)).poll
+        poll = (await self.get_messages(chat_id, message_id)).poll
 
         r = await self.invoke(
             raw.functions.messages.EditMessage(
@@ -65,17 +65,13 @@ class StopPoll:
                 media=raw.types.InputMediaPoll(
                     poll=raw.types.Poll(
                         id=int(poll.id),
-                        question=raw.types.TextWithEntities(text="", entities=[]),
-                        answers=[],
-                        hash=0,
                         closed=True,
-                    ),
+                        question="",
+                        answers=[]
+                    )
                 ),
-                reply_markup=await reply_markup.write(self) if reply_markup else None,
+                reply_markup=await reply_markup.write(self) if reply_markup else None
             )
         )
 
-        users = {i.id: i for i in r.users}
-        chats = {i.id: i for i in r.chats}
-
-        return await types.Poll._parse(self, r.updates[0], None, users=users, chats=chats)
+        return types.Poll._parse(self, r.updates[0])

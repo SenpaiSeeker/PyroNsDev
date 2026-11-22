@@ -16,23 +16,16 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from io import BytesIO
+from typing import cast
 
-from typing import TYPE_CHECKING, Any
-
-from ..tl_object import TLObject
 from .bytes import Bytes
 
-if TYPE_CHECKING:
-    from io import BytesIO
 
-
-# Not a `Bytes` subclass: `read` returns `str` where `Bytes.read` returns `bytes`,
-#  so inheriting would break substitutability. The wire format is delegated instead.
-class String(bytes, TLObject):
+class String(Bytes):
     @classmethod
-    def read(cls, data: BytesIO, *args: Any) -> str:
-        return Bytes.read(data).decode(errors="replace")
+    def read(cls, data: BytesIO, *args) -> str:  # type: ignore
+        return cast(bytes, super(String, String).read(data)).decode(errors="replace")
 
-    def __new__(cls, value: str) -> bytes:
-        return Bytes(value.encode())
+    def __new__(cls, value: str) -> bytes:  # type: ignore
+        return super().__new__(cls, value.encode())

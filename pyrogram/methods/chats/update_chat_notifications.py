@@ -16,30 +16,25 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+import datetime
+from typing import Union
 
 import pyrogram
-from pyrogram import raw, utils
-
-if TYPE_CHECKING:
-    from datetime import datetime, timedelta
-
+from pyrogram import raw
+from pyrogram import types
+from pyrogram import utils
 
 class UpdateChatNotifications:
     async def update_chat_notifications(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        mute: bool | None = None,
-        mute_until: datetime | timedelta | None = None,
-        stories_muted: bool | None = None,
-        stories_hide_sender: bool | None = None,
-        show_previews: bool | None = None,
-    ) -> bool:
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        mute: bool = None,
+        mute_until: datetime = None,
+        stories_muted: bool = None,
+        stories_hide_sender: bool = None,
+        show_previews: bool = None
+    ) -> "types.Chat":
         """Update the notification settings for the selected chat
-
-        .. include:: /_includes/usable-by/users.rst
 
         Parameters:
             chat_id (``int`` | ``str``):
@@ -48,17 +43,14 @@ class UpdateChatNotifications:
             mute (``bool``, *optional*):
                 Pass True if you want to mute chat.
 
-            mute_until (:py:obj:`~datetime.datetime` | :py:obj:`~datetime.timedelta`, *optional*):
-                Date until which the chat stays muted.
-                Defaults to forever when mute is True, and to the epoch (not muted) otherwise.
-                A :py:obj:`~datetime.timedelta` is counted from now.
+            until_date (:py:obj:`~datetime.datetime`, *optional*):
+                Date when the user will be unmuted. Works only if the mute parameter is set to True. Defaults to forever.
 
             stories_muted (``bool``, *optional*):
-                Pass True to stop being notified about new stories posted by this chat.
-                Independent of mute, which covers messages only.
+                N/A
 
             stories_hide_sender (``bool``, *optional*):
-                Pass True to hide the poster's name in story notifications from this chat.
+                N/A
 
             show_previews (``bool``, *optional*):
                 If the text of the message shall be displayed in notification.
@@ -69,23 +61,24 @@ class UpdateChatNotifications:
         Example:
             .. code-block:: python
 
-                from datetime import timedelta
-
                 # Mute a chat permanently
-                await app.update_chat_notifications(chat_id, mute=True)
+                app.update_chat_notifications(chat_id, mute=True)
 
                 # Mute a chat for 10 minutes
-                await app.update_chat_notifications(
+                app.update_chat_notifications(
                     chat_id,
-                    mute=True,
-                    mute_until=timedelta(minutes=10)
+                    mute=True
+                    mute_until=datetime.timedelta(minutes=10)
                 )
 
                 # Unmute a chat
-                await app.update_chat_notifications(chat_id, mute=False)
+                app.update_chat_notifications(chat_id, mute=False)
         """
         if not mute_until:
             mute_until = utils.max_datetime() if mute else utils.zero_datetime()
+
+        if isinstance(mute_until, datetime.timedelta):
+            mute_until = datetime.datetime.now() + mute_until
 
         r = await self.invoke(
             raw.functions.account.UpdateNotifySettings(
@@ -96,7 +89,7 @@ class UpdateChatNotifications:
                     mute_until=utils.datetime_to_timestamp(mute_until),
                     stories_muted=stories_muted,
                     stories_hide_sender=stories_hide_sender,
-                ),
+                )
             )
         )
 

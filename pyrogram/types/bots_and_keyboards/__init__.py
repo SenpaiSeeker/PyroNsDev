@@ -16,7 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from .bot_access_settings import BotAccessSettings
 from .bot_command import BotCommand
 from .bot_command_scope import BotCommandScope
 from .bot_command_scope_all_chat_administrators import BotCommandScopeAllChatAdministrators
@@ -28,59 +27,32 @@ from .bot_command_scope_chat_member import BotCommandScopeChatMember
 from .bot_command_scope_default import BotCommandScopeDefault
 from .callback_game import CallbackGame
 from .callback_query import CallbackQuery
-from .area_position import AreaPosition
-from .ton_nft import TonNft
-from .ton_nft_attribute import TonNftAttribute
-from .ton_wallet_card import TonWalletCard
-from .ton_wallet_card_sticker import TonWalletCardSticker
-from .widget_query import SharedWidgetQuery, WidgetQuery
-from .widget_query_type import (
-    WidgetQueryType,
-    WidgetQueryTypeData,
-    WidgetQueryTypeSentTransaction,
-    WidgetQueryTypeSignData,
-    WidgetQueryWallet,
-)
-from .chat_boost_updated import ChatBoostUpdated
-from .chat_shared import ChatShared
-from .copy_text_button import CopyTextButton
-from .disabled_button import DisabledButton
 from .force_reply import ForceReply
 from .game_high_score import GameHighScore
 from .inline_keyboard_button import InlineKeyboardButton
 from .inline_keyboard_markup import InlineKeyboardMarkup
 from .keyboard_button import KeyboardButton
-from .keyboard_button_poll_type import KeyboardButtonPollType
-from .keyboard_button_request_chat import KeyboardButtonRequestChat
-from .keyboard_button_request_managed_bot import KeyboardButtonRequestManagedBot
-from .keyboard_button_request_users import KeyboardButtonRequestUsers
-from .labeled_price import LabeledPrice
 from .login_url import LoginUrl
-from .managed_bot_updated import ManagedBotUpdated
 from .menu_button import MenuButton
 from .menu_button_commands import MenuButtonCommands
 from .menu_button_default import MenuButtonDefault
 from .menu_button_web_app import MenuButtonWebApp
-from .message_generation_stopped import MessageGenerationStopped
-from .message_reaction_count_updated import MessageReactionCountUpdated
-from .message_reaction_updated import MessageReactionUpdated
-from .order_info import OrderInfo
-from .pre_checkout_query import PreCheckoutQuery
-from .purchased_paid_media import PurchasedPaidMedia
 from .reply_keyboard_markup import ReplyKeyboardMarkup
 from .reply_keyboard_remove import ReplyKeyboardRemove
-from .rich_message_button import RichMessageButton
-from .sent_guest_message import SentGuestMessage
 from .sent_web_app_message import SentWebAppMessage
-from .shipping_address import ShippingAddress
-from .shipping_option import ShippingOption
-from .shipping_query import ShippingQuery
-from .switch_inline_query_chosen_chat import SwitchInlineQueryChosenChat
-from .users_shared import UsersShared
 from .web_app_info import WebAppInfo
 
 __all__ = [
-    "BotAccessSettings",
+    "CallbackGame",
+    "CallbackQuery",
+    "ForceReply",
+    "GameHighScore",
+    "InlineKeyboardButton",
+    "InlineKeyboardMarkup",
+    "KeyboardButton",
+    "ReplyKeyboardMarkup",
+    "ReplyKeyboardRemove",
+    "LoginUrl",
     "BotCommand",
     "BotCommandScope",
     "BotCommandScopeAllChatAdministrators",
@@ -90,55 +62,10 @@ __all__ = [
     "BotCommandScopeChatAdministrators",
     "BotCommandScopeChatMember",
     "BotCommandScopeDefault",
-    "CallbackGame",
-    "CallbackQuery",
-    "AreaPosition",
-    "SharedWidgetQuery",
-    "TonNft",
-    "TonNftAttribute",
-    "TonWalletCard",
-    "TonWalletCardSticker",
-    "WidgetQuery",
-    "WidgetQueryType",
-    "WidgetQueryTypeData",
-    "WidgetQueryTypeSentTransaction",
-    "WidgetQueryTypeSignData",
-    "WidgetQueryWallet",
-    "ChatBoostUpdated",
-    "ChatShared",
-    "CopyTextButton",
-    "DisabledButton",
-    "ForceReply",
-    "GameHighScore",
-    "InlineKeyboardButton",
-    "InlineKeyboardMarkup",
-    "KeyboardButton",
-    "KeyboardButtonPollType",
-    "KeyboardButtonRequestChat",
-    "KeyboardButtonRequestManagedBot",
-    "KeyboardButtonRequestUsers",
-    "LabeledPrice",
-    "LoginUrl",
-    "ManagedBotUpdated",
+    "WebAppInfo",
     "MenuButton",
     "MenuButtonCommands",
-    "MenuButtonDefault",
     "MenuButtonWebApp",
-    "MessageGenerationStopped",
-    "MessageReactionCountUpdated",
-    "MessageReactionUpdated",
-    "OrderInfo",
-    "PreCheckoutQuery",
-    "PurchasedPaidMedia",
-    "ReplyKeyboardMarkup",
-    "ReplyKeyboardRemove",
-    "RichMessageButton",
-    "SentGuestMessage",
-    "SentWebAppMessage",
-    "ShippingAddress",
-    "ShippingOption",
-    "ShippingQuery",
-    "SwitchInlineQueryChosenChat",
-    "UsersShared",
-    "WebAppInfo",
+    "MenuButtonDefault",
+    "SentWebAppMessage"
 ]

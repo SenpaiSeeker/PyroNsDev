@@ -16,21 +16,20 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Union, Optional, AsyncGenerator
 
 import pyrogram
-from pyrogram import raw, types
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+from pyrogram import raw
+from pyrogram import types
 
 
 class GetChatJoinRequests:
     async def get_chat_join_requests(
-        self: pyrogram.Client, chat_id: int | str, limit: int = 0, query: str = ""
-    ) -> AsyncGenerator[types.ChatJoiner, None]:
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        limit: int = 0,
+        query: str = ""
+    ) -> Optional[AsyncGenerator["types.ChatJoiner", None]]:
         """Get the pending join requests of a chat.
 
         .. include:: /_includes/usable-by/users.rst
@@ -68,7 +67,7 @@ class GetChatJoinRequests:
                     offset_date=offset_date,
                     offset_user=offset_user,
                     requested=True,
-                    q=query,
+                    q=query
                 )
             )
 
@@ -81,7 +80,7 @@ class GetChatJoinRequests:
             offset_user = await self.resolve_peer(r.importers[-1].user_id)
 
             for i in r.importers:
-                yield await types.ChatJoiner._parse(self, i, users)
+                yield types.ChatJoiner._parse(self, i, users)
 
                 current += 1
 

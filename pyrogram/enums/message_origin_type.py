@@ -1,5 +1,6 @@
 #  Pyrogram - Telegram MTProto API Client Library for Python
 #  Copyright (C) 2017-present Dan <https://github.com/delivrance>
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
 #  This file is part of Pyrogram.
 #
@@ -35,6 +36,7 @@ class MessageOriginType(AutoName):
 
     IMPORT = auto()
     "The message was imported from a foreign chat service"
+
 
     USER = auto()
     "The message was originally sent by a known user"

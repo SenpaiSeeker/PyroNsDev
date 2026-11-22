@@ -16,48 +16,38 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from .account import Account
 from .advanced import Advanced
 from .auth import Auth
 from .bots import Bots
-from .business import Business
 from .chats import Chats
 from .contacts import Contacts
 from .decorators import Decorators
-from .folders import Folders
 from .invite_links import InviteLinks
 from .messages import Messages
 from .password import Password
-from .payments import Payments
-from .phone import Phone
 from .premium import Premium
-from .stickers import Stickers
-from .stories import Stories
 from .users import Users
+from .stories import Stories
+from .stickers import Stickers
 from .utilities import Utilities
-from .wallet import Wallet
+from .pyromod import Pyromod
 
 
 class Methods(
-    Account,
     Advanced,
     Auth,
     Bots,
-    Business,
-    Chats,
     Contacts,
-    Decorators,
-    Folders,
-    InviteLinks,
-    Messages,
     Password,
-    Payments,
-    Phone,
     Premium,
-    Stickers,
-    Stories,
+    Chats,
     Users,
+    Stories,
+    Messages,
+    Decorators,
+    Stickers,
     Utilities,
-    Wallet,
+    InviteLinks,
+    Pyromod
 ):
     pass

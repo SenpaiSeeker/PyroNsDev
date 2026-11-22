@@ -16,16 +16,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import raw
+from pyrogram import types
+from pyrogram import utils
 
 
 class GetChat:
     async def get_chat(
-        self: pyrogram.Client, chat_id: int | str, force_full: bool = True
-    ) -> types.Chat | None:
+        self: "pyrogram.Client",
+        chat_id: Union[int, str]
+    ) -> Union["types.Chat", "types.ChatPreview"]:
         """Get up to date information about a chat.
 
         Information include current name of the user for one-on-one conversations, current username of a user, group or
@@ -39,14 +42,9 @@ class GetChat:
                 Unique identifier for the target chat in form of a *t.me/joinchat/* link, identifier (int) or username
                 of the target channel/supergroup (in the format @username).
 
-            force_full (``bool``, *optional*):
-                Pass False, if you don't need to fetch full chat information.
-                Defaults to True.
-
         Returns:
-            :obj:`~pyrogram.types.Chat` | ``None``: On success, if you've already joined the chat, a chat object is
-            returned, otherwise, a chat preview object is returned. In case the account can no longer see the chat and
-            the server answers with an empty peer, None is returned.
+            :obj:`~pyrogram.types.Chat` | :obj:`~pyrogram.types.ChatPreview`: On success, if you've already joined the chat, a chat object is returned,
+            otherwise, a chat preview object is returned.
 
         Raises:
             ValueError: In case the chat invite link points to a chat you haven't joined yet.
@@ -60,10 +58,14 @@ class GetChat:
         match = self.INVITE_LINK_RE.match(str(chat_id))
 
         if match:
-            r = await self.invoke(raw.functions.messages.CheckChatInvite(hash=match.group(1)))
+            r = await self.invoke(
+                raw.functions.messages.CheckChatInvite(
+                    hash=match.group(1)
+                )
+            )
 
             if isinstance(r, raw.types.ChatInvite):
-                return await types.Chat._parse_preview(self, r)
+                return types.ChatPreview._parse(self, r)
 
             await self.fetch_peers([r.chat])
 
@@ -75,26 +77,11 @@ class GetChat:
 
         peer = await self.resolve_peer(chat_id)
 
-        if force_full:
-            if isinstance(peer, raw.types.InputPeerChannel):
-                r = await self.invoke(raw.functions.channels.GetFullChannel(channel=peer))
-            elif isinstance(peer, (raw.types.InputPeerUser, raw.types.InputPeerSelf)):
-                r = await self.invoke(raw.functions.users.GetFullUser(id=peer))
-            else:
-                r = await self.invoke(raw.functions.messages.GetFullChat(chat_id=peer.chat_id))
-
-            return await types.Chat._parse_full(self, r)
+        if isinstance(peer, raw.types.InputPeerChannel):
+            r = await self.invoke(raw.functions.channels.GetFullChannel(channel=peer))
+        elif isinstance(peer, (raw.types.InputPeerUser, raw.types.InputPeerSelf)):
+            r = await self.invoke(raw.functions.users.GetFullUser(id=peer))
         else:
-            if isinstance(peer, raw.types.InputPeerChannel):
-                r = await self.invoke(raw.functions.channels.GetChannels(id=[peer]))
-            elif isinstance(peer, (raw.types.InputPeerUser, raw.types.InputPeerSelf)):
-                r = await self.invoke(raw.functions.users.GetUsers(id=[peer]))
-            else:
-                r = await self.invoke(raw.functions.messages.GetChats(id=[peer.chat_id]))
+            r = await self.invoke(raw.functions.messages.GetFullChat(chat_id=peer.chat_id))
 
-            return await types.Chat._parse_chat(
-                self,
-                r.chats[0]
-                if isinstance(r, (raw.types.messages.Chats, raw.types.messages.ChatsSlice))
-                else r[0],
-            )
+        return await types.Chat._parse_full(self, r)

@@ -16,28 +16,24 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import os
-from typing import TYPE_CHECKING, BinaryIO
+from typing import Union, BinaryIO
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import raw
+from pyrogram import utils
 from pyrogram.file_id import FileType
-
-if TYPE_CHECKING:
-    from pyrogram._typing import PathType
 
 
 class SetChatPhoto:
     async def set_chat_photo(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         *,
-        photo: PathType | BinaryIO | None = None,
-        video: PathType | BinaryIO | None = None,
-        video_start_ts: float | None = None,
-    ) -> types.Message | None:
+        photo: Union[str, BinaryIO] = None,
+        video: Union[str, BinaryIO] = None,
+        video_start_ts: float = None,
+    ) -> bool:
         """Set a new chat photo or video (H.264/MPEG-4 AVC video, max 5 seconds).
 
         The ``photo`` and ``video`` arguments are mutually exclusive.
@@ -51,12 +47,12 @@ class SetChatPhoto:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
 
-            photo (``str`` | ``os.PathLike`` | ``BinaryIO``, *optional*):
+            photo (``str`` | ``BinaryIO``, *optional*):
                 New chat photo. You can pass a :obj:`~pyrogram.types.Photo` file_id, a file path to upload a new photo
                 from your local machine or a binary file-like object with its attribute
                 ".name" set for in-memory uploads.
 
-            video (``str`` | ``os.PathLike`` | ``BinaryIO``, *optional*):
+            video (``str`` | ``BinaryIO``, *optional*):
                 New chat video. You can pass a :obj:`~pyrogram.types.Video` file_id, a file path to upload a new video
                 from your local machine or a binary file-like object with its attribute
                 ".name" set for in-memory uploads.
@@ -65,12 +61,10 @@ class SetChatPhoto:
                 The timestamp in seconds of the video frame to use as photo profile preview.
 
         Returns:
-            :obj:`~pyrogram.types.Message` | ``None``: On success, the sent service message is returned,
-            otherwise, in case the server answered with no message, None is returned.
+            ``bool``: True on success.
 
         Raises:
             ValueError: if a chat_id belongs to user.
-            FileNotFoundError: In case a local ``os.PathLike`` doesn't point to an existing file.
 
         Example:
             .. code-block:: python
@@ -90,18 +84,16 @@ class SetChatPhoto:
         """
         peer = await self.resolve_peer(chat_id)
 
-        if isinstance(photo, (str, os.PathLike)):
+        if isinstance(photo, str):
             if os.path.isfile(photo):
                 photo = raw.types.InputChatUploadedPhoto(
                     file=await self.save_file(photo),
                     video=await self.save_file(video),
                     video_start_ts=video_start_ts,
                 )
-            elif isinstance(photo, str):
+            else:
                 photo = utils.get_input_media_from_file_id(photo, FileType.PHOTO)
                 photo = raw.types.InputChatPhoto(id=photo.id)
-            else:
-                raise FileNotFoundError(f"No such file or directory: {photo}")
         else:
             photo = raw.types.InputChatUploadedPhoto(
                 file=await self.save_file(photo),
@@ -110,17 +102,20 @@ class SetChatPhoto:
             )
 
         if isinstance(peer, raw.types.InputPeerChat):
-            r = await self.invoke(
+            await self.invoke(
                 raw.functions.messages.EditChatPhoto(
                     chat_id=peer.chat_id,
                     photo=photo,
                 )
             )
         elif isinstance(peer, raw.types.InputPeerChannel):
-            r = await self.invoke(raw.functions.channels.EditPhoto(channel=peer, photo=photo))
+            await self.invoke(
+                raw.functions.channels.EditPhoto(
+                    channel=peer,
+                    photo=photo
+                )
+            )
         else:
             raise ValueError(f'The chat_id "{chat_id}" belongs to a user')
 
-        messages = await utils.parse_messages(client=self, messages=r)
-
-        return messages[0] if messages else None
+        return True

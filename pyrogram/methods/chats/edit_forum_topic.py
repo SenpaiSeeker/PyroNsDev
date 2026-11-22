@@ -16,22 +16,23 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
 from pyrogram import raw
+from pyrogram import types
+from typing import Union
 
 
 class EditForumTopic:
     async def edit_forum_topic(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_thread_id: int,
-        name: str | None = None,
-        icon_custom_emoji_id: str | None = None,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        topic_id: int,
+        title: str = None,
+        icon_emoji_id: int = None,
+        closed: bool = None,
+        hidden: bool = None
     ) -> bool:
-        """Use this method to edit name and icon of a topic in a forum supergroup chat or a private chat with a user.
-        In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the `can_manage_topics` administrator rights, unless it is the creator of the topic.
+        """Edit a forum topic.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
@@ -39,67 +40,38 @@ class EditForumTopic:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
 
-            message_thread_id (``int``):
-                Unique identifier for the target message thread of the forum topic.
+            topic_id (``int``):
+                Unique identifier (int) of the target forum topic.
 
-            name (``str``, *optional*):
-                New topic name, 0-128 characters.
-                If not specified or empty, the current name of the topic will be kept.
+            title (``str``, *optional*):
+                The forum topic title.
 
-            icon_custom_emoji_id (``str``, *optional*):
-                New unique identifier of the custom emoji shown as the topic icon.
-                Pass an empty string to remove the icon.
-                If not specified, the current icon will be kept.
+            icon_emoji_id (``int``, *optional*):
+                Unique identifier of the custom emoji shown as the topic icon.
+
+            closed (``bool``, *optional*):
+                Close forum topic.
+
+            hidden (``bool``, *optional*):
+                Hide forum topic.
 
         Returns:
-            ``bool``: On success, True is returned.
+            `bool`: On success, a Boolean is returned.
 
         Example:
             .. code-block:: python
 
-                await app.edit_forum_topic(chat_id, message_thread_id, "New Topic Title")
+                await app.edit_forum_topic(chat_id,topic_id,"New Topic Title")
         """
-        if icon_custom_emoji_id == "":
-            icon_emoji_id = 0
-        else:
-            icon_emoji_id = int(icon_custom_emoji_id) if icon_custom_emoji_id is not None else None
-
-        r = await self.invoke(
-            raw.functions.messages.EditForumTopic(
-                peer=await self.resolve_peer(chat_id),
-                topic_id=message_thread_id,
-                title=name,
+        await self.invoke(
+            raw.functions.channels.EditForumTopic(
+                channel=await self.resolve_peer(chat_id),
+                topic_id=topic_id,
+                title=title,
                 icon_emoji_id=icon_emoji_id,
+                closed=closed,
+                hidden=hidden
             )
         )
 
-        return bool(r)
-
-
-class EditGeneralForumTopic:
-    async def edit_general_forum_topic(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        name: str,
-    ) -> bool:
-        """Use this method to edit the name of the 'General' topic in a forum supergroup chat.
-        The bot must be an administrator in the chat for this to work and must have the `can_manage_topics` administrator rights.
-
-        .. include:: /_includes/usable-by/users-bots.rst
-
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-
-            name (``str``):
-                New topic name, 1-128 characters.
-
-        Returns:
-            ``bool``: On success, True is returned.
-
-        Example:
-            .. code-block:: python
-
-                await app.edit_general_forum_topic(chat_id, "New Topic Title")
-        """
-        return bool(await self.edit_forum_topic(chat_id, 1, name=name))
+        return True

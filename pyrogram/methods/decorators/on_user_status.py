@@ -16,51 +16,42 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Callable
 
 import pyrogram
 from pyrogram.filters import Filter
-from .unbound_arguments import unbound_arguments
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from .handler_type import HandlerType
 
 
 class OnUserStatus:
     def on_user_status(
-        self: OnUserStatus | Filter | None = None,
-        filters: Filter | None = None,
-        group: int = 0,
-    ) -> Callable[[HandlerType], HandlerType]:
+        self=None,
+        filters=None,
+        group: int = 0
+    ) -> Callable:
         """Decorator for handling user status updates.
         This does the same thing as :meth:`~pyrogram.Client.add_handler` using the
         :obj:`~pyrogram.handlers.UserStatusHandler`.
 
-        .. include:: /_includes/usable-by/users.rst
-
         Parameters:
             filters (:obj:`~pyrogram.filters`, *optional*):
-                Pass one or more filters to allow only a subset of user status updates to be passed in your function.
+                Pass one or more filters to allow only a subset of UserStatus updated to be passed in your function.
 
             group (``int``, *optional*):
                 The group identifier, defaults to 0.
         """
 
-        def decorator(func: HandlerType) -> HandlerType:
+        def decorator(func: Callable) -> Callable:
             if isinstance(self, pyrogram.Client):
                 self.add_handler(pyrogram.handlers.UserStatusHandler(func, filters), group)
             elif isinstance(self, Filter) or self is None:
                 if not hasattr(func, "handlers"):
                     func.handlers = []
 
-                arguments = unbound_arguments(self, filters=filters, group=group)
-
                 func.handlers.append(
-                    (pyrogram.handlers.UserStatusHandler(func, arguments.filters), arguments.group)
+                    (
+                        pyrogram.handlers.UserStatusHandler(func, self),
+                        group if filters is None else filters
+                    )
                 )
 
             return func

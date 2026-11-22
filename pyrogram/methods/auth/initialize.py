@@ -16,21 +16,17 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import asyncio
 import logging
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import pyrogram
+import pyrogram
 
 log = logging.getLogger(__name__)
 
 
 class Initialize:
     async def initialize(
-        self: pyrogram.Client,
+        self: "pyrogram.Client",
     ):
         """Initialize the client by starting up workers.
 
@@ -47,9 +43,10 @@ class Initialize:
         if self.is_initialized:
             raise ConnectionError("Client is already initialized")
 
+        self.load_plugins()
+
         await self.dispatcher.start()
 
-        if not self.no_updates:
-            self.updates_watchdog_task = asyncio.create_task(self.updates_watchdog())
+        self.updates_watchdog_task = asyncio.create_task(self.updates_watchdog())
 
         self.is_initialized = True

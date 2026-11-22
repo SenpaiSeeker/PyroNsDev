@@ -16,43 +16,40 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING, Any
+from io import BytesIO
+from typing import Any
 
 from ..tl_object import TLObject
-
-if TYPE_CHECKING:
-    from io import BytesIO
 
 
 class Bytes(bytes, TLObject):
     @classmethod
     def read(cls, data: BytesIO, *args: Any) -> bytes:
-        prefix = data.read(1)
+        length = int.from_bytes(data.read(1), "little")
 
-        if not prefix:
-            return prefix
-
-        length = prefix[0]
-
-        if length > 253:
-            length = int.from_bytes(data.read(3), "little")
-            padding = -length % 4
+        if length <= 253:
+            x = data.read(length)
+            data.read(-(length + 1) % 4)
         else:
-            padding = 3 - length % 4
-
-        x = data.read(length)
-
-        if padding:
-            data.read(padding)
+            length = int.from_bytes(data.read(3), "little")
+            x = data.read(length)
+            data.read(-length % 4)
 
         return x
 
-    def __new__(cls, value: bytes) -> bytes:
+    def __new__(cls, value: bytes) -> bytes:  # type: ignore
         length = len(value)
 
         if length <= 253:
-            return bytes([length]) + value + bytes(-(length + 1) % 4)
+            return (
+                bytes([length])
+                + value
+                + bytes(-(length + 1) % 4)
+            )
         else:
-            return bytes([254]) + length.to_bytes(3, "little") + value + bytes(-length % 4)
+            return (
+                bytes([254])
+                + length.to_bytes(3, "little")
+                + value
+                + bytes(-length % 4)
+            )

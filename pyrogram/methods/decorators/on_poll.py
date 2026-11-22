@@ -16,32 +16,22 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Callable
 
 import pyrogram
 from pyrogram.filters import Filter
-from .unbound_arguments import unbound_arguments
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from .handler_type import HandlerType
 
 
 class OnPoll:
     def on_poll(
-        self: OnPoll | Filter | None = None,
-        filters: Filter | None = None,
-        group: int = 0,
-    ) -> Callable[[HandlerType], HandlerType]:
+        self=None,
+        filters=None,
+        group: int = 0
+    ) -> Callable:
         """Decorator for handling poll updates.
 
         This does the same thing as :meth:`~pyrogram.Client.add_handler` using the
         :obj:`~pyrogram.handlers.PollHandler`.
-
-        .. include:: /_includes/usable-by/bots.rst
 
         Parameters:
             filters (:obj:`~pyrogram.filters`, *optional*):
@@ -52,17 +42,18 @@ class OnPoll:
                 The group identifier, defaults to 0.
         """
 
-        def decorator(func: HandlerType) -> HandlerType:
+        def decorator(func: Callable) -> Callable:
             if isinstance(self, pyrogram.Client):
                 self.add_handler(pyrogram.handlers.PollHandler(func, filters), group)
             elif isinstance(self, Filter) or self is None:
                 if not hasattr(func, "handlers"):
                     func.handlers = []
 
-                arguments = unbound_arguments(self, filters=filters, group=group)
-
                 func.handlers.append(
-                    (pyrogram.handlers.PollHandler(func, arguments.filters), arguments.group)
+                    (
+                        pyrogram.handlers.PollHandler(func, self),
+                        group if filters is None else filters
+                    )
                 )
 
             return func

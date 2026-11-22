@@ -16,11 +16,9 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
-from pyrogram import raw, types
-
+from pyrogram import raw
+from pyrogram import types
 from ..object import Object
 
 
@@ -49,12 +47,12 @@ class Venue(Object):
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
-        location: types.Location,
+        client: "pyrogram.Client" = None,
+        location: "types.Location",
         title: str,
         address: str,
-        foursquare_id: str | None = None,
-        foursquare_type: str | None = None,
+        foursquare_id: str = None,
+        foursquare_type: str = None
     ):
         super().__init__(client)
 
@@ -65,12 +63,12 @@ class Venue(Object):
         self.foursquare_type = foursquare_type
 
     @staticmethod
-    def _parse(client, venue: raw.types.MessageMediaVenue):
+    def _parse(client, venue: "raw.types.MessageMediaVenue"):
         return Venue(
-            location=types.Location._parse(venue.geo),
+            location=types.Location._parse(client, venue.geo),
             title=venue.title,
             address=venue.address,
             foursquare_id=venue.venue_id or None,
-            foursquare_type=venue.venue_type or None,
-            client=client,
+            foursquare_type=venue.venue_type,
+            client=client
         )

@@ -16,21 +16,20 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union, List
 
 import pyrogram
-from pyrogram import raw, types
+from pyrogram import raw
 
 
 class AddChatMembers:
     async def add_chat_members(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        user_ids: int | str | list[int | str],
-        forward_limit: int = 100,
-    ) -> list[types.FailedToAddMember]:
-        """Add new chat members to a group, supergroup or channel.
-        This method can't be used to join a chat. Members can't be added to a channel if it has more than 200 members.
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        user_ids: Union[Union[int, str], List[Union[int, str]]],
+        forward_limit: int = 100
+    ) -> bool:
+        """Add new chat members to a group, supergroup or channel
 
         .. include:: /_includes/usable-by/users.rst
 
@@ -49,7 +48,7 @@ class AddChatMembers:
                 Defaults to 100 (max amount).
 
         Returns:
-            List of :obj:`~pyrogram.types.FailedToAddMember`: On success, an empty list is returned, otherwise a list of :obj:`~pyrogram.types.FailedToAddMember` is returned.
+            ``bool``: On success, True is returned.
 
         Example:
             .. code-block:: python
@@ -68,26 +67,24 @@ class AddChatMembers:
         if not isinstance(user_ids, list):
             user_ids = [user_ids]
 
-        missing_invitees = []
-
         if isinstance(peer, raw.types.InputPeerChat):
             for user_id in user_ids:
-                r = await self.invoke(
+                await self.invoke(
                     raw.functions.messages.AddChatUser(
                         chat_id=peer.chat_id,
                         user_id=await self.resolve_peer(user_id),
-                        fwd_limit=forward_limit,
+                        fwd_limit=forward_limit
                     )
                 )
-
-                missing_invitees.extend(r.missing_invitees)
         else:
-            r = await self.invoke(
+            await self.invoke(
                 raw.functions.channels.InviteToChannel(
-                    channel=peer, users=[await self.resolve_peer(user_id) for user_id in user_ids]
+                    channel=peer,
+                    users=[
+                        await self.resolve_peer(user_id)
+                        for user_id in user_ids
+                    ]
                 )
             )
 
-            missing_invitees.extend(r.missing_invitees)
-
-        return types.List(types.FailedToAddMember._parse(inv) for inv in missing_invitees)
+        return True

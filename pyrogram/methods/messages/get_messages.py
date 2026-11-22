@@ -16,150 +16,48 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import re
-from typing import TYPE_CHECKING, overload
+import logging
+from typing import Union, List, Iterable
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import raw
+from pyrogram import types
+from pyrogram import utils
 
-if TYPE_CHECKING:
-    from collections.abc import Iterable
+log = logging.getLogger(__name__)
+
+
+# TODO: Rewrite using a flag for replied messages and have message_ids non-optional
 
 
 class GetMessages:
-    # Invalid arguments (chat and string message_id provided)
-    @overload
     async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: str,
-        reply: None = None,
-        pinned: None = None,
-        replies: int = 1,
-    ) -> types.Message | None: ...
-    # Invalid arguments (only message_ids with type int or Iterable of int provided)
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: None = None,
-        message_ids: int | Iterable[int] = 0,
-        reply: None = None,
-        pinned: None = None,
-        replies: int = 1,
-    ) -> None: ...
-    # Invalid arguments (only chat provided)
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: None = None,
-        reply: None = None,
-        pinned: None = None,
-        replies: int = 1,
-    ) -> None: ...
-    # Invalid arguments (only pinned provided)
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: None = None,
-        message_ids: None = None,
-        reply: None = None,
-        pinned: bool = True,
-        replies: int = 1,
-    ) -> None: ...
-    # Invalid arguments (nothing provided)
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: None = None,
-        message_ids: None = None,
-        reply: None = None,
-        pinned: None = None,
-        replies: int = 1,
-    ) -> None: ...
-    # One message
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: int | str,
-        reply: bool | None = None,
-        pinned: bool | None = None,
-        replies: int = 1,
-    ) -> types.Message | None: ...
-    # One message with string
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: None = None,
-        message_ids: str = "",
-        reply: bool | None = None,
-        pinned: bool | None = None,
-        replies: int = 1,
-    ) -> types.Message | None: ...
-    # Many messages
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: Iterable[int],
-        reply: bool | None = None,
-        pinned: bool | None = None,
-        replies: int = 1,
-    ) -> list[types.Message]: ...
-    # Pinned message
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: None = None,
-        reply: bool | None = None,
-        pinned: bool = False,
-        replies: int = 1,
-    ) -> types.Message | None: ...
-    # Pinned message with provided message ids
-    # - message ids will not affect result
-    @overload
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        message_ids: int | Iterable[int] | str | None = None,
-        reply: bool | None = None,
-        pinned: bool = False,
-        replies: int = 1,
-    ) -> types.Message | None: ...
-    async def get_messages(
-        self: pyrogram.Client,
-        chat_id: int | str | None = None,
-        message_ids: int | Iterable[int] | str | None = None,
-        reply: bool | None = None,
-        pinned: bool | None = None,
-        replies: int = 1,
-    ) -> types.Message | None | list[types.Message]:
-        """Get one or more messages from a chat by using message identifiers or link.
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        message_ids: Union[int, Iterable[int]] = None,
+        reply_to_message_ids: Union[int, Iterable[int]] = None,
+        replies: int = 1
+    ) -> Union["types.Message", List["types.Message"]]:
+        """Get one or more messages from a chat by using message identifiers.
 
         You can retrieve up to 200 messages at once.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
         Parameters:
-            chat_id (``int`` | ``str``, *optional*):
+            chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
                 For your personal cloud (Saved Messages) you can simply use "me" or "self".
                 For a contact that exists in your Telegram address book you can use his phone number (str).
 
-            message_ids (``int`` | Iterable of ``int`` | ``str``, *optional*):
-                Pass a single message identifier or an iterable of message ids (as integers) or link to get the content of the
-                message themselves or previous message you replied to using this message.
+            message_ids (``int`` | Iterable of ``int``, *optional*):
+                Pass a single message identifier or an iterable of message ids (as integers) to get the content of the
+                message themselves.
 
-            reply (``bool``, *optional*):
-                If True, you will get the content of
+            reply_to_message_ids (``int`` | Iterable of ``int``, *optional*):
+                Pass a single message identifier or an iterable of message ids (as integers) to get the content of
                 the previous message you replied to using this message.
-
-            pinned (``bool``, *optional*):
-                If True, you will get last pinned message.
+                If *message_ids* is set, this argument will be ignored.
 
             replies (``int``, *optional*):
                 The number of subsequent replies to get for each message.
@@ -167,69 +65,44 @@ class GetMessages:
                 Defaults to 1.
 
         Returns:
-            :obj:`~pyrogram.types.Message` | List of :obj:`~pyrogram.types.Message` | ``None``: In case *message_ids*
-            was not a list, a single message is returned, otherwise a list of messages is returned. In case
-            *message_ids* was not a list and the message does not exist, None is returned.
+            :obj:`~pyrogram.types.Message` | List of :obj:`~pyrogram.types.Message`: In case *message_ids* was not
+            a list, a single message is returned, otherwise a list of messages is returned.
 
         Example:
             .. code-block:: python
 
                 # Get one message
-                await app.get_messages(chat_id=chat_id, message_ids=12345)
+                await app.get_messages(chat_id, 12345)
 
                 # Get more than one message (list of messages)
-                await app.get_messages(chat_id=chat_id, message_ids=[12345, 12346])
+                await app.get_messages(chat_id, [12345, 12346])
 
                 # Get message by ignoring any replied-to message
-                await app.get_messages(chat_id=chat_id, message_ids=message_id, replies=0)
+                await app.get_messages(chat_id, message_id, replies=0)
 
                 # Get message with all chained replied-to messages
-                await app.get_messages(chat_id=chat_id, message_ids=message_id, replies=-1)
+                await app.get_messages(chat_id, message_id, replies=-1)
 
                 # Get the replied-to message of a message
-                await app.get_messages(chat_id=chat_id, message_ids=message_id, reply=True)
-
-                # Get pinned message
-                await app.get_messages(chat_id=chat_id, pinned=True)
-
-                # Get message from link
-                await app.get_messages(message_ids="https://t.me/pyrogram/49")
+                await app.get_messages(chat_id, reply_to_message_ids=message_id)
 
         Raises:
             ValueError: In case of invalid arguments.
         """
-        is_iterable = not isinstance(message_ids, (int, str)) if message_ids is not None else False
-        ids = None if message_ids is None else list(message_ids) if is_iterable else [message_ids]
-        _type = raw.types.InputMessageReplyTo if reply else raw.types.InputMessageID
+        ids, ids_type = (
+            (message_ids, raw.types.InputMessageID) if message_ids
+            else (reply_to_message_ids, raw.types.InputMessageReplyTo) if reply_to_message_ids
+            else (None, None)
+        )
 
-        if isinstance(message_ids, str):
-            match = re.match(
-                r"^(?:https?://)?(?:www\.)?(?:t(?:elegram)?\.(?:org|me|dog)/(?:c/)?)([\w]+)(?:/\d+)*/(\d+)/?$",
-                message_ids.lower(),
-            )
-
-            if match:
-                try:
-                    chat_id = utils.get_channel_id(int(match.group(1)))
-                except ValueError:
-                    chat_id = match.group(1)
-
-                ids = [_type(id=int(match.group(2)))]
-            else:
-                raise ValueError("Invalid message link.")
-        else:
-            if not chat_id:
-                raise ValueError("Invalid chat_id.")
-
-            if pinned:
-                ids = [raw.types.InputMessagePinned()]
-            else:
-                if ids is None:
-                    raise ValueError("Invalid message ids.")
-
-                ids = [_type(id=i) for i in ids]
+        if ids is None:
+            raise ValueError("No argument supplied. Either pass message_ids or reply_to_message_ids")
 
         peer = await self.resolve_peer(chat_id)
+
+        is_iterable = not isinstance(ids, int)
+        ids = list(ids) if is_iterable else [ids]
+        ids = [ids_type(id=i) for i in ids]
 
         if replies < 0:
             replies = (1 << 31) - 1

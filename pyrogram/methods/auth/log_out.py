@@ -16,8 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import logging
 
 import pyrogram
@@ -28,8 +26,8 @@ log = logging.getLogger(__name__)
 
 class LogOut:
     async def log_out(
-        self: pyrogram.Client,
-    ) -> bool:
+        self: "pyrogram.Client",
+    ):
         """Log out from Telegram and delete the *\\*.session* file.
 
         When you log out, the current client is stopped and the storage session deleted.
@@ -44,7 +42,7 @@ class LogOut:
             .. code-block:: python
 
                 # Log out.
-                await app.log_out()
+                app.log_out()
         """
         await self.invoke(raw.functions.auth.LogOut())
         await self.stop()

@@ -16,58 +16,52 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import os
-from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO
+import re
+from typing import List, Union, BinaryIO, Callable
 
 import pyrogram
-from pyrogram import StopTransmission, enums, raw, types, utils
+from pyrogram import enums, raw, types, utils, StopTransmission
 from pyrogram.errors import FilePartMissing
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from pyrogram._typing import PathType
-
 
 class SendStory:
     async def send_story(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        media: PathType | BinaryIO,
-        caption: str | None = None,
-        period: int | None = None,
-        media_areas: list[types.MediaArea] | None = None,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        media: Union[str, BinaryIO],
+        caption: str = None,
+        period: int = None,
         duration: int = 0,
         width: int = 0,
         height: int = 0,
-        thumb: PathType | BinaryIO | None = None,
+        thumb: Union[str, BinaryIO] = None,
         supports_streaming: bool = True,
-        file_name: str | None = None,
-        privacy: enums.StoriesPrivacyRules | None = None,
-        allowed_users: list[int | str] | None = None,
-        disallowed_users: list[int | str] | None = None,
-        pinned: bool | None = None,
-        protect_content: bool | None = None,
-        parse_mode: enums.ParseMode | None = None,
-        caption_entities: list[types.MessageEntity] | None = None,
-        progress: Callable | None = None,
-        progress_args: tuple = (),
-    ) -> types.Story | None:
-        """Post new story.
+        file_name: str = None,
+        privacy: "enums.StoriesPrivacyRules" = None,
+        allowed_users: List[Union[int, str]] = None,
+        disallowed_users: List[Union[int, str]] = None,
+        pinned: bool = None,
+        protect_content: bool = None,
+        parse_mode: "enums.ParseMode" = None,
+        caption_entities: List["types.MessageEntity"] = None,
+        progress: Callable = None,
+        progress_args: tuple = ()
+    ) -> "types.Story":
+        """Send new story.
 
         .. include:: /_includes/usable-by/users.rst
+
+        Note: You must pass one of following paramater *animation*, *photo*, *video*
 
         Parameters:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
                 For your personal cloud (Saved Messages) you can simply use "me" or "self".
 
-            media (``str`` | ``os.PathLike`` | ``BinaryIO``):
+            media (``str`` | ``BinaryIO``):
                 Video or photo to send.
                 Pass a file_id as string to send a animation that exists on the Telegram servers,
+                pass an HTTP URL as a string for Telegram to get a animation from the Internet,
                 pass a file path as string to upload a new animation that exists on your local machine, or
                 pass a binary file-like object with its attribute ".name" set for in-memory uploads.
 
@@ -75,12 +69,8 @@ class SendStory:
                 Story caption, 0-1024 characters.
 
             period (``int``, *optional*):
-                Period after which the story is moved to archive (and to the profile if pinned is set), in seconds.
-                Must be one of ``6 * 3600``, ``12 * 3600``, ``86400``, or ``2 * 86400`` for Telegram Premium users,
-                and 86400 otherwise.
-
-            media_areas (List of :obj:`~pyrogram.types.MediaArea`, *optional*):
-                List of media areas to add to the story.
+                How long the story will posted, in secs.
+                only for premium users.
 
             duration (``int``, *optional*):
                 Duration of sent video in seconds.
@@ -91,18 +81,11 @@ class SendStory:
             height (``int``, *optional*):
                 Video height.
 
-            thumb (``str`` | ``os.PathLike`` | ``BinaryIO``, *optional*):
+            thumb (``str`` | ``BinaryIO``, *optional*):
                 Thumbnail of the video sent.
                 The thumbnail should be in JPEG format and less than 200 KB in size.
                 A thumbnail's width and height should not exceed 320 pixels.
                 Thumbnails can't be reused and can be only uploaded as a new file.
-
-            supports_streaming (``bool``, *optional*):
-                True, if the uploaded video is suitable for streaming.
-                Defaults to True.
-
-            file_name (``str``, *optional*):
-                File name of the story sent.
 
             privacy (:obj:`~pyrogram.enums.StoriesPrivacyRules`, *optional*):
                 Story privacy.
@@ -120,16 +103,18 @@ class SendStory:
                 and :obj:`~pyrogram.enums.StoriesPrivacyRules.CONTACTS` only
 
             pinned (``bool``, *optional*):
-                If True, the story will be pinned.
+                if True, the story will be pinned.
+                default to False.
 
             protect_content (``bool``, *optional*):
                 Protects the contents of the sent story from forwarding and saving.
+                default to False.
 
             parse_mode (:obj:`~pyrogram.enums.ParseMode`, *optional*):
                 By default, texts are parsed using both Markdown and HTML styles.
                 You can combine both syntaxes together.
 
-            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
+            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`):
                 List of special entities that appear in the caption, which can be specified instead of *parse_mode*.
 
             progress (``Callable``, *optional*):
@@ -144,34 +129,26 @@ class SendStory:
                 object or a Client instance in order to edit the message with the updated progress status.
 
         Returns:
-            :obj:`~pyrogram.types.Story` | ``None``: On success, the sent story is returned, otherwise,
-            in case the upload is deliberately stopped with :meth:`~pyrogram.Client.stop_transmission`,
-            None is returned.
+            :obj:`~pyrogram.types.Story` a single story is returned.
 
         Example:
             .. code-block:: python
 
-                # Post story to your profile
-                await app.send_story("me", "story.png", caption='My new story!')
-
-                # Post story to channel
-                await app.send_story(123456, "story.png", caption='My new story!')
+                # Send new story
+                await app.send_story(media=file_id, caption='Hello guys.')
 
         Raises:
             ValueError: In case of invalid arguments.
-            FileNotFoundError: In case a local ``os.PathLike`` doesn't point to an existing file.
         """
-        message, entities = (
-            await utils.parse_text_entities(self, caption, parse_mode, caption_entities)
-        ).values()
+        # TODO: media_areas
+
+        message, entities = (await utils.parse_text_entities(self, caption, parse_mode, caption_entities)).values()
 
         try:
-            if isinstance(media, (str, os.PathLike)):
+            if isinstance(media, str):
                 if os.path.isfile(media):
                     thumb = await self.save_file(thumb)
-                    file = await self.save_file(
-                        media, progress=progress, progress_args=progress_args
-                    )
+                    file = await self.save_file(media, progress=progress, progress_args=progress_args)
                     mime_type = self.guess_mime_type(file.name)
                     if mime_type == "video/mp4":
                         media = raw.types.InputMediaUploadedDocument(
@@ -180,24 +157,29 @@ class SendStory:
                             thumb=thumb,
                             attributes=[
                                 raw.types.DocumentAttributeVideo(
-                                    supports_streaming=supports_streaming,
                                     duration=duration,
                                     w=width,
                                     h=height,
                                 ),
-                                raw.types.DocumentAttributeFilename(
-                                    file_name=file_name or Path(media).name
-                                ),
-                            ],
+                                raw.types.DocumentAttributeFilename(file_name=file_name or os.path.basename(media))
+                            ]
                         )
                     else:
                         media = raw.types.InputMediaUploadedPhoto(
                             file=file,
                         )
-                elif isinstance(media, str):
-                    media = utils.get_input_media_from_file_id(media)
+                elif re.match("^https?://", media):
+                    mime_type = self.guess_mime_type(media)
+                    if mime_type == "video/mp4":
+                        media = raw.types.InputMediaDocumentExternal(
+                            url=media,
+                        )
+                    else:
+                        media = raw.types.InputMediaPhotoExternal(
+                            url=media,
+                        )
                 else:
-                    raise FileNotFoundError(f"No such file or directory: {media}")
+                    media = utils.get_input_media_from_file_id(media)
             else:
                 thumb = await self.save_file(thumb)
                 file = await self.save_file(media, progress=progress, progress_args=progress_args)
@@ -209,13 +191,13 @@ class SendStory:
                         thumb=thumb,
                         attributes=[
                             raw.types.DocumentAttributeVideo(
-                                supports_streaming=supports_streaming,
+                                supports_streaming=supports_streaming or None,
                                 duration=duration,
                                 w=width,
                                 h=height,
                             ),
-                            raw.types.DocumentAttributeFilename(file_name=file_name or media.name),
-                        ],
+                            raw.types.DocumentAttributeFilename(file_name=file_name or media.name)
+                        ]
                     )
                 else:
                     media = raw.types.InputMediaUploadedPhoto(
@@ -224,51 +206,37 @@ class SendStory:
 
             privacy_rules = []
 
-            if privacy == enums.StoriesPrivacyRules.PUBLIC:
-                privacy_rules.append(raw.types.InputPrivacyValueAllowAll())
-                if disallowed_users:
-                    users = [await self.resolve_peer(user_id) for user_id in disallowed_users]
-                    privacy_rules.append(raw.types.InputPrivacyValueDisallowUsers(users=users))
-            elif privacy == enums.StoriesPrivacyRules.CONTACTS:
-                privacy_rules.append(raw.types.InputPrivacyValueAllowContacts())
-                if disallowed_users:
-                    users = [await self.resolve_peer(user_id) for user_id in disallowed_users]
-                    privacy_rules.append(raw.types.InputPrivacyValueDisallowUsers(users=users))
-            elif privacy == enums.StoriesPrivacyRules.CLOSE_FRIENDS:
-                privacy_rules.append(raw.types.InputPrivacyValueAllowCloseFriends())
-                if allowed_users:
-                    users = [await self.resolve_peer(user_id) for user_id in allowed_users]
-                    privacy_rules.append(raw.types.InputPrivacyValueAllowUsers(users=users))
-                else:
-                    privacy_rules.append(
-                        raw.types.InputPrivacyValueAllowUsers(users=[raw.types.InputPeerEmpty()])
-                    )
-            elif privacy == enums.StoriesPrivacyRules.SELECTED_USERS:
-                _allowed_users = []
-                _allowed_chats = []
+            if privacy:
+                if privacy == enums.StoriesPrivacyRules.PUBLIC:
+                    privacy_rules.append(raw.types.InputPrivacyValueAllowAll())
+                    if disallowed_users:
+                        users = [await self.resolve_peer(user_id) for user_id in disallowed_users]
+                        privacy_rules.append(raw.types.InputPrivacyValueDisallowUsers(users=users))
+                elif privacy == enums.StoriesPrivacyRules.CONTACTS:
+                    privacy_rules = [raw.types.InputPrivacyValueAllowContacts()]
+                    if disallowed_users:
+                        users = [await self.resolve_peer(user_id) for user_id in disallowed_users]
+                        privacy_rules.append(raw.types.InputPrivacyValueDisallowUsers(users=users))
+                elif privacy == enums.StoriesPrivacyRules.CLOSE_FRIENDS:
+                    privacy_rules = [raw.types.InputPrivacyValueAllowCloseFriends()]
+                    if allowed_users:
+                        users = [await self.resolve_peer(user_id) for user_id in allowed_users]
+                        privacy_rules.append(raw.types.InputPrivacyValueAllowUsers(users=users))
+                elif privacy == enums.StoriesPrivacyRules.SELECTED_USERS:
+                    _allowed_users = []
+                    _allowed_chats = []
 
-                if allowed_users:
                     for user in allowed_users:
                         peer = await self.resolve_peer(user)
                         if isinstance(peer, raw.types.InputPeerUser):
                             _allowed_users.append(peer)
-                        elif isinstance(
-                            peer, (raw.types.InputPeerChat, raw.types.InputPeerChannel)
-                        ):
+                        elif isinstance(peer, raw.types.InputPeerChat):
                             _allowed_chats.append(peer)
-                else:
-                    privacy_rules.append(
-                        raw.types.InputPrivacyValueAllowUsers(users=[raw.types.InputPeerEmpty()])
-                    )
 
-                if _allowed_users:
-                    privacy_rules.append(
-                        raw.types.InputPrivacyValueAllowUsers(users=_allowed_users)
-                    )
-                if _allowed_chats:
-                    privacy_rules.append(
-                        raw.types.InputPrivacyValueAllowChatParticipants(chats=_allowed_chats)
-                    )
+                    if _allowed_users:
+                        privacy_rules.append(raw.types.InputPrivacyValueAllowUsers(users=_allowed_users))
+                    if _allowed_chats:
+                        privacy_rules.append(raw.types.InputPrivacyValueAllowChatParticipants(chats=_allowed_chats))
             else:
                 privacy_rules.append(raw.types.InputPrivacyValueAllowAll())
 
@@ -282,28 +250,22 @@ class SendStory:
                             random_id=self.rnd_id(),
                             pinned=pinned,
                             noforwards=protect_content,
-                            media_areas=[await area.write(self) for area in (media_areas or [])]
-                            or None,
                             caption=message,
                             entities=entities,
                             period=period,
                         )
                     )
                 except FilePartMissing as e:
-                    # The error names the missing part; without it there is nothing to resave.
-                    if e.file_part is None:
-                        raise
-
-                    await self.save_file(media, file_id=file.id, file_part=e.file_part)
+                    await self.save_file(media, file_id=file.id, file_part=e.value)
                 else:
                     for i in r.updates:
                         if isinstance(i, raw.types.UpdateStory):
                             return await types.Story._parse(
                                 self,
                                 i.story,
-                                i.peer,
                                 {i.id: i for i in r.users},
                                 {i.id: i for i in r.chats},
+                                i.peer
                             )
         except StopTransmission:
             return None

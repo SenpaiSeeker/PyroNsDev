@@ -16,11 +16,9 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
-from pyrogram import raw, types, utils
-
+from pyrogram import raw, utils
+from pyrogram import types
 from ..object import Object
 
 
@@ -41,10 +39,10 @@ class GameHighScore(Object):
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
-        user: types.User,
+        client: "pyrogram.Client" = None,
+        user: "types.User",
         score: int,
-        position: int | None = None,
+        position: int = None
     ):
         super().__init__(client)
 
@@ -53,22 +51,20 @@ class GameHighScore(Object):
         self.position = position
 
     @staticmethod
-    async def _parse(client, game_high_score: raw.types.HighScore, users: dict) -> GameHighScore:
+    def _parse(client, game_high_score: raw.types.HighScore, users: dict) -> "GameHighScore":
         users = {i.id: i for i in users}
 
         return GameHighScore(
-            user=await types.User._parse(client, users[game_high_score.user_id]),
+            user=types.User._parse(client, users[game_high_score.user_id]),
             score=game_high_score.score,
             position=game_high_score.pos,
-            client=client,
+            client=client
         )
 
     @staticmethod
-    async def _parse_action(client, service: raw.types.MessageService, users: dict):
+    def _parse_action(client, service: raw.types.MessageService, users: dict):
         return GameHighScore(
-            user=await types.User._parse(
-                client, users[utils.get_raw_peer_id(service.from_id or service.peer_id)]
-            ),
+            user=types.User._parse(client, users[utils.get_raw_peer_id(service.from_id or service.peer_id)]),
             score=service.action.score,
-            client=client,
+            client=client
         )

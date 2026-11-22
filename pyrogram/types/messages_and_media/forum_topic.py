@@ -16,188 +16,135 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
-
-import pyrogram
-from pyrogram import raw, types, utils
-
+from pyrogram import raw, types
+from typing import Union
 from ..object import Object
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class ForumTopic(Object):
+    # todo
+    # notify_settings: `~pyrogram.types.PeerNotifySettings`
+    # draft: `~pyrogram.types.DraftMessage`
     """A forum topic.
 
     Parameters:
-        id (``int``):
-            Unique topic identifier inside this chat.
+        id (``Integer``):
+            Id of the topic
 
-        name (``str``):
-            The topic title.
+        date (``Integer``):
+            Date topic created
 
-        date (:py:obj:`~datetime.datetime`, *optional*):
-            Date when the topic was created.
+        title (``String``):
+            Name of the topic
 
-        icon_color (``int``, *optional*):
-            Color of the topic icon in RGB format.
+        icon_color (``Integer``):
+            Color of the topic icon in RGB format
 
-        icon_custom_emoji_id (``str``, *optional*):
-            Unique identifier of the custom emoji shown as the topic icon.
+        top_message (``Integer``):
+            N/A
 
-        creator (:obj:`~pyrogram.types.Chat`, *optional*):
+        read_inbox_max_id (``Integer``):
+            N/A
+
+        read_outbox_max_id (``Integer``):
+            N/A
+
+        unread_count (``Integer``):
+            N/A
+
+        unread_mentions_count (``Integer``):
+            N/A
+
+        unread_reactions_count (``Integer``):
+            N/A
+
+        from_id (:obj:`~pyrogram.types.PeerChannel` | :obj:`~pyrogram.types.PeerUser`):
             Topic creator.
 
-        top_message (:obj:`~pyrogram.types.Message`, *optional*):
-            The last message sent in the topic at this time.
+        my (``Boolean``, *optional*):
+            N/A
 
-        unread_count (``int``, *optional*):
-            Amount of unread messages in this topic.
+        closed (``Boolean``, *optional*):
+            N/A
 
-        unread_mentions_count (``int``, *optional*):
-            Amount of unread messages containing a mention in this topic.
+        pinned (``Boolean``, *optional*):
+            N/A
 
-        unread_reactions_count (``int``, *optional*):
-            Amount of unread messages containing a reaction in this topic.
+        short (``Boolean``, *optional*):
+            N/A
 
-        unread_poll_vote_count (``int``, *optional*):
-            Number of messages with unread poll votes in the topic.
-
-        is_my (``bool``, *optional*):
-            True, if the topic was created by the current user.
-
-        is_closed (``bool``, *optional*):
-            True, the topic is closed (no messages can be sent to it).
-
-        is_pinned (``bool``, *optional*):
-            True, if the topic is pinned.
-
-        is_short (``bool``, *optional*):
-            True, if the topic is a reduced version of the full topic information.
-
-            If set, only the ``is_my``, ``is_closed``, ``id``, ``date``, ``title``, ``icon_color``, ``icon_emoji_id`` and ``creator`` parameters will contain valid information.
-
-        is_hidden (``bool``, *optional*):
-            True, if the topic is hidden (only valid for the "General" topic, ``id=1``).
-
-        is_deleted (``bool``, *optional*):
-            True, if the forum topic is deleted.
+        icon_emoji_id (``Integer``, *optional*):
+            Unique identifier of the custom emoji shown as the topic icon
     """
 
     def __init__(
         self,
         *,
         id: int,
-        name: str | None = None,
-        date: datetime | None = None,
-        icon_color: int | None = None,
-        icon_custom_emoji_id: str | None = None,
-        creator: types.Chat | None = None,
-        top_message: types.Message | None = None,
-        unread_count: int | None = None,
-        unread_mentions_count: int | None = None,
-        unread_reactions_count: int | None = None,
-        unread_poll_vote_count: int | None = None,
-        is_my: bool | None = None,
-        is_closed: bool | None = None,
-        is_pinned: bool | None = None,
-        is_short: bool | None = None,
-        is_hidden: bool | None = None,
-        is_deleted: bool | None = None,
+        date: int,
+        title: str,
+        icon_color: int,
+        top_message: int,
+        read_inbox_max_id: int,
+        read_outbox_max_id: int,
+        unread_count: int,
+        unread_mentions_count: int,
+        unread_reactions_count: int,
+        from_id: Union["types.PeerChannel", "types.PeerUser"],
+        # notify_settings: "types.PeerNotifySettings", //todo
+        my: bool = None,
+        closed: bool = None,
+        pinned: bool = None,
+        short: bool = None,
+        icon_emoji_id: int = None,
+        # draft: "types.DraftMessage" = None //todo
     ):
         super().__init__()
 
         self.id = id
-        self.name = name
         self.date = date
+        self.title = title
         self.icon_color = icon_color
-        self.icon_custom_emoji_id = icon_custom_emoji_id
-        self.creator = creator
         self.top_message = top_message
+        self.read_inbox_max_id = read_inbox_max_id
+        self.read_outbox_max_id = read_outbox_max_id
         self.unread_count = unread_count
         self.unread_mentions_count = unread_mentions_count
         self.unread_reactions_count = unread_reactions_count
-        self.unread_poll_vote_count = unread_poll_vote_count
-        self.is_my = is_my
-        self.is_closed = is_closed
-        self.is_pinned = is_pinned
-        self.is_short = is_short
-        self.is_hidden = is_hidden
-        self.is_deleted = is_deleted
+        self.from_id = from_id
+        # self.notify_settings = notify_settings //todo
+        self.my = my
+        self.closed = closed
+        self.pinned = pinned
+        self.short = short
+        self.icon_emoji_id = icon_emoji_id
+        # self.draft = draft //todo
 
     @staticmethod
-    async def _parse(
-        client: pyrogram.Client,
-        forum_topic: raw.base.ForumTopic,
-        messages: dict | None = None,
-        users: dict | None = None,
-        chats: dict | None = None,
-    ) -> ForumTopic | None:
-        if not forum_topic:
-            return None
-
-        if isinstance(forum_topic, raw.types.ForumTopicDeleted):
-            return ForumTopic(id=forum_topic.id, is_deleted=True)
-
-        messages = messages or {}
-        users = users or {}
-        chats = chats or {}
-
-        peer_id = utils.get_raw_peer_id(forum_topic.from_id)
+    def _parse(forum_topic: "raw.types.forum_topic") -> "ForumTopic":
+        from_id = forum_topic.from_id
+        if isinstance(from_id, raw.types.PeerChannel):
+            peer = types.PeerChannel._parse(from_id)
+        if isinstance(from_id, raw.types.PeerUser):
+            peer = types.PeerUser._parse(from_id)
 
         return ForumTopic(
-            id=forum_topic.id,
-            name=forum_topic.title,
-            date=utils.timestamp_to_datetime(forum_topic.date),
-            icon_color=forum_topic.icon_color,
-            icon_custom_emoji_id=str(forum_topic.icon_emoji_id),
-            creator=await types.Chat._parse_chat(client, users.get(peer_id) or chats.get(peer_id)),
-            top_message=messages.get(forum_topic.top_message),
-            unread_count=forum_topic.unread_count,
-            unread_mentions_count=forum_topic.unread_mentions_count,
-            unread_reactions_count=forum_topic.unread_reactions_count,
-            unread_poll_vote_count=forum_topic.unread_poll_votes_count,
-            is_my=forum_topic.my,
-            is_closed=forum_topic.closed,
-            is_pinned=forum_topic.pinned,
-            is_short=forum_topic.short,
-            is_hidden=forum_topic.hidden,
+            id=getattr(forum_topic, "id", None),
+            date=getattr(forum_topic, "date", None),
+            title=getattr(forum_topic, "title", None),
+            icon_color=getattr(forum_topic, "icon_color", None),
+            top_message=getattr(forum_topic, "top_message", None),
+            read_inbox_max_id=getattr(forum_topic, "read_inbox_max_id", None),
+            read_outbox_max_id=getattr(forum_topic, "read_outbox_max_id", None),
+            unread_count=getattr(forum_topic, "unread_count", None),
+            unread_mentions_count=getattr(forum_topic, "unread_mentions_count", None),
+            unread_reactions_count=getattr(forum_topic, "unread_reactions_count", None),
+            from_id=peer,
+            # notify_settings=None, //todo
+            my=getattr(forum_topic, "my", None),
+            closed=getattr(forum_topic, "closed", None),
+            pinned=getattr(forum_topic, "pinned", None),
+            short=getattr(forum_topic, "short", None),
+            icon_emoji_id=getattr(forum_topic, "icon_emoji_id", None),
+            # draft=None //todo
         )
-
-    @staticmethod
-    async def _parse_message(
-        client: pyrogram.Client,
-        message: raw.base.Message,
-        users: dict[int, raw.base.User] | None = None,
-        chats: dict[int, raw.base.Chat] | None = None,
-    ) -> ForumTopic | None:
-        if chats is None:
-            chats = {}
-        if users is None:
-            users = {}
-
-        if isinstance(message, raw.types.MessageService) and isinstance(
-            message.action, (raw.types.MessageActionTopicCreate, raw.types.MessageActionTopicEdit)
-        ):
-            topic_id = message.id
-
-            if message.reply_to:
-                topic_id = message.reply_to.reply_to_top_id
-
-            peer_id = utils.get_raw_peer_id(message.from_id)
-
-            return ForumTopic(
-                id=topic_id,
-                name=message.action.title,
-                date=utils.timestamp_to_datetime(message.date),
-                icon_color=getattr(message.action, "icon_color", None),
-                icon_custom_emoji_id=str(message.action.icon_emoji_id),
-                creator=await types.Chat._parse_chat(
-                    client, users.get(peer_id) or chats.get(peer_id)
-                ),
-                is_closed=getattr(message.action, "closed", None),
-                is_hidden=getattr(message.action, "hidden", None),
-            )

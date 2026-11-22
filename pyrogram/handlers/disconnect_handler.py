@@ -16,21 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Callable
 
 from .handler import Handler
 
-if TYPE_CHECKING:
-    import pyrogram
-    import pyrogram.session
 
-DisconnectCallbackType = Callable[["pyrogram.Client", "pyrogram.session.Session"], Any]
-
-
-class DisconnectHandler(Handler[DisconnectCallbackType]):
+class DisconnectHandler(Handler):
     """The Disconnect handler class. Used to handle disconnections. It is intended to be used with
     :meth:`~pyrogram.Client.add_handler`
 
@@ -46,10 +37,7 @@ class DisconnectHandler(Handler[DisconnectCallbackType]):
         client (:obj:`~pyrogram.Client`):
             The Client itself. Useful, for example, when you want to change the proxy before a new connection
             is established.
-
-        session (:obj:`~pyrogram.session.Session`):
-            The Session used for the connection.
     """
 
-    def __init__(self, callback: DisconnectCallbackType) -> None:
+    def __init__(self, callback: Callable):
         super().__init__(callback)

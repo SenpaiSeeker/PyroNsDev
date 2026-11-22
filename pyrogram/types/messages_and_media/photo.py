@@ -16,18 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import List
 
 import pyrogram
-from pyrogram import raw, types, utils
+from pyrogram import raw, utils
+from pyrogram import types
 from pyrogram.file_id import FileId, FileType, FileUniqueId, FileUniqueType, ThumbnailSource
-
 from ..object import Object
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class Photo(Object):
@@ -63,15 +59,15 @@ class Photo(Object):
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
+        client: "pyrogram.Client" = None,
         file_id: str,
         file_unique_id: str,
         width: int,
         height: int,
         file_size: int,
         date: datetime,
-        ttl_seconds: int | None = None,
-        thumbs: list[types.Thumbnail] | None = None,
+        ttl_seconds: int = None,
+        thumbs: List["types.Thumbnail"] = None
     ):
         super().__init__(client)
 
@@ -85,24 +81,25 @@ class Photo(Object):
         self.thumbs = thumbs
 
     @staticmethod
-    def _parse(client, photo: raw.types.Photo, ttl_seconds: int | None = None) -> Photo | None:
+    def _parse(client, photo: "raw.types.Photo", ttl_seconds: int = None) -> "Photo":
         if isinstance(photo, raw.types.Photo):
-            photos: list[raw.types.PhotoSize] = []
+            photos: List[raw.types.PhotoSize] = []
 
             for p in photo.sizes:
                 if isinstance(p, raw.types.PhotoSize):
                     photos.append(p)
 
                 if isinstance(p, raw.types.PhotoSizeProgressive):
-                    photos.append(raw.types.PhotoSize(type=p.type, w=p.w, h=p.h, size=max(p.sizes)))
+                    photos.append(
+                        raw.types.PhotoSize(
+                            type=p.type,
+                            w=p.w,
+                            h=p.h,
+                            size=max(p.sizes)
+                        )
+                    )
 
-            # `PhotoSize` is a union, and `photoStrippedSize` / `photoPathSize` carry no real
-            #  dimensions, so a photo built only from such entries filters down to nothing here.
-            #  https://core.telegram.org/type/PhotoSize
-            if not photos:
-                return None
-
-            photos.sort(key=lambda p: p.w * p.h)
+            photos.sort(key=lambda p: p.size)
 
             main = photos[-1]
 
@@ -117,10 +114,11 @@ class Photo(Object):
                     thumbnail_file_type=FileType.PHOTO,
                     thumbnail_size=main.type,
                     volume_id=0,
-                    local_id=0,
+                    local_id=0
                 ).encode(),
                 file_unique_id=FileUniqueId(
-                    file_unique_type=FileUniqueType.DOCUMENT, media_id=photo.id
+                    file_unique_type=FileUniqueType.DOCUMENT,
+                    media_id=photo.id
                 ).encode(),
                 width=main.w,
                 height=main.h,
@@ -128,5 +126,5 @@ class Photo(Object):
                 date=utils.timestamp_to_datetime(photo.date),
                 ttl_seconds=ttl_seconds,
                 thumbs=types.Thumbnail._parse(client, photo),
-                client=client,
+                client=client
             )

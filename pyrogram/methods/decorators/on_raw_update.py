@@ -16,53 +16,38 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Callable
 
 import pyrogram
-from pyrogram.filters import Filter
-from .unbound_arguments import unbound_arguments
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from .handler_type import HandlerType
 
 
 class OnRawUpdate:
     def on_raw_update(
-        self: OnRawUpdate | Filter | None = None,
-        filters: Filter | None = None,
-        group: int = 0,
-    ) -> Callable[[HandlerType], HandlerType]:
+        self=None,
+        group: int = 0
+    ) -> Callable:
         """Decorator for handling raw updates.
 
         This does the same thing as :meth:`~pyrogram.Client.add_handler` using the
         :obj:`~pyrogram.handlers.RawUpdateHandler`.
 
-        .. include:: /_includes/usable-by/users-bots.rst
-
         Parameters:
-            filters (:obj:`~pyrogram.filters`, *optional*):
-                Pass one or more filters to allow only a subset of updates to be passed
-                in your function.
-
             group (``int``, *optional*):
                 The group identifier, defaults to 0.
         """
 
-        def decorator(func: HandlerType) -> HandlerType:
+        def decorator(func: Callable) -> Callable:
             if isinstance(self, pyrogram.Client):
-                self.add_handler(pyrogram.handlers.RawUpdateHandler(func, filters), group)
-            elif isinstance(self, Filter) or self is None:
+                self.add_handler(pyrogram.handlers.RawUpdateHandler(func), group)
+            else:
                 if not hasattr(func, "handlers"):
                     func.handlers = []
 
-                arguments = unbound_arguments(self, filters=filters, group=group)
-
                 func.handlers.append(
-                    (pyrogram.handlers.RawUpdateHandler(func, arguments.filters), arguments.group)
+                    (
+                        pyrogram.handlers.RawUpdateHandler(func),
+                        group
+                    )
                 )
 
             return func

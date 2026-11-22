@@ -1,74 +1,115 @@
-#  Pyrogram - Telegram MTProto API Client Library for Python
-#  Copyright (C) 2017-present Dan <https://github.com/delivrance>
+#  Pyrofork - Telegram MTProto API Client Library for Python
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
-#  This file is part of Pyrogram.
+#  This file is part of Pyrofork.
 #
-#  Pyrogram is free software: you can redistribute it and/or modify
+#  Pyrofork is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published
 #  by the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Pyrogram is distributed in the hope that it will be useful,
+#  Pyrofork is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU Lesser General Public License for more details.
 #
 #  You should have received a copy of the GNU Lesser General Public License
-#  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
+#  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
+import os
+import re
 
 import pyrogram
-from pyrogram import raw, types
+from pyrogram import raw
+from pyrogram import types
+from pyrogram import utils
+from pyrogram.file_id import FileId, FileType
 
+from typing import Union
 
 class AddStickerToSet:
     async def add_sticker_to_set(
-        self: pyrogram.Client,
-        user_id: int | str,
-        name: str,
-        sticker: types.InputSticker,
-    ) -> types.StickerSet:
-        """Adds a new sticker to a set.
-        Emoji sticker sets can have up to 200 stickers.
-        Other sticker sets can have up to 120 stickers.
+        self: "pyrogram.Client",
+        set_short_name: str,
+        sticker: str,
+        user_id: Union[int, str] = None,
+        emoji: str = "🤔",
+    ) -> "types.StickerSet":
+        """Add a sticker to stickerset.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
         Parameters:
-            user_id (``int`` | ``str``):
-               Unique identifier (int) or username (str) of sticker file owner.
+            set_short_name (``str``):
+               Stickerset shortname.
 
-            name (``str``):
-                Name of the sticker set.
+            sticker (``str``):
+                sticker to add.
+                Pass a file_id as string to add a sticker that exists on the Telegram servers,
+                pass an HTTP URL as a string for Telegram to get a sticker from the Internet,
+                pass a file path as string to upload a new sticker that exists on your local machine, or
+                pass a binary file-like object with its attribute ".name" set for in-memory uploads.
 
-            sticker (:obj:`~pyrogram.types.InputSticker`):
-                Sticker to be added to the set.
+            user_id (``int`` | ``str``, *optional*):
+                Unique identifier (int) or username (str) of the Stickerset owner.
+                For you yourself you can simply use "me" or "self" (users only).
+                required for bots.
+                default to "me".
+
+            emoji (``str``, *optional*):
+                Associated emoji.
+                default to "🤔"
 
         Returns:
-            :obj:`~pyrogram.types.StickerSet`: A updated sticker set is returned.
+            :obj:`~pyrogram.types.StickerSet`: On success, the StickerSet information is returned.
 
         Example:
             .. code-block:: python
 
-                from pyrogram import enums
-
-                await app.add_sticker_to_set(
-                    "me",
-                    "my_sticker_set",
-                    sticker=types.InputSticker(
-                        sticker="sticker.png",
-                        format=enums.StickerFormat.STATIC,
-                        emoji_list=["👍"]
-                    )
-                )
+                await app.add_sticker_to_set("mypack1", "AsJiasp")
         """
+
+        if isinstance(sticker, str):
+            if self.me.is_bot and user_id is None:
+                raise ValueError("user_id is required for bots")
+            if os.path.isfile(sticker) or re.match("^https?://", sticker):
+                document = await self.send_document(
+                    user_id or "me",
+                    sticker,
+                    force_document=True,
+                    disable_notification=True
+                )
+                uploaded_media = utils.get_input_media_from_file_id(document.document.file_id, FileType.DOCUMENT)
+                media = uploaded_media.id
+                _ = await document.delete()
+            else:
+                decoded = FileId.decode(sticker)
+                media = raw.types.InputDocument(
+                    id=decoded.media_id,
+                    access_hash=decoded.access_hash,
+                    file_reference=decoded.file_reference
+                )
+        else:
+            if self.me.is_bot and user_id is None:
+                raise ValueError("user_id is required for bots")
+            document = await self.send_document(
+                user_id or "me",
+                sticker,
+                force_document=True,
+                disable_notification=True
+            )
+            uploaded_media = utils.get_input_media_from_file_id(document.document.file_id, FileType.DOCUMENT)
+            media = uploaded_media.id
+            _ = await document.delete()
+
         r = await self.invoke(
             raw.functions.stickers.AddStickerToSet(
-                stickerset=raw.types.InputStickerSetShortName(short_name=name),
-                sticker=await sticker.write(client=self, chat_id=user_id),
+                stickerset=raw.types.InputStickerSetShortName(short_name=set_short_name),
+                sticker=raw.types.InputStickerSetItem(
+                    document=media,
+                    emoji=emoji
+                )
             )
         )
 
-        return await types.StickerSet._parse(self, r)
+        return types.StickerSet._parse(r.set)

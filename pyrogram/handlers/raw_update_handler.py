@@ -16,31 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
-
-from pyrogram import raw
+from typing import Callable
 
 from .handler import Handler
 
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram.filters import Filter
 
-RawUpdateCallbackType = Callable[
-    [
-        "pyrogram.Client",
-        raw.base.Update,
-        dict[int, raw.base.User],
-        dict[int, raw.base.Chat],
-    ],
-    Any,
-]
-
-
-class RawUpdateHandler(Handler[RawUpdateCallbackType]):
+class RawUpdateHandler(Handler):
     """The Raw Update handler class. Used to handle raw updates. It is intended to be used with
     :meth:`~pyrogram.Client.add_handler`
 
@@ -53,30 +34,26 @@ class RawUpdateHandler(Handler[RawUpdateCallbackType]):
             *(client, update, users, chats)* as positional arguments (look at the section below for
             a detailed description).
 
-        filters (:obj:`~pyrogram.filters.Filter`):
-            Pass one or more filters to allow only a subset of updates to be passed
-            in your callback function.
-
     Other Parameters:
         client (:obj:`~pyrogram.Client`):
             The Client itself, useful when you want to call other API methods inside the update handler.
 
-        update (:obj:`~pyrogram.raw.base.Update`):
+        update (``Update``):
             The received update, which can be one of the many single Updates listed in the
             :obj:`~pyrogram.raw.base.Update` base type.
 
         users (``dict``):
-            Dictionary of all :obj:`~pyrogram.raw.base.User` mentioned in the update.
+            Dictionary of all :obj:`~pyrogram.types.User` mentioned in the update.
             You can access extra info about the user (such as *first_name*, *last_name*, etc...) by using
             the IDs you find in the *update* argument (e.g.: *users[1768841572]*).
 
         chats (``dict``):
-            Dictionary of all :obj:`~pyrogram.raw.base.Chat` mentioned in the update.
+            Dictionary of all :obj:`~pyrogram.types.Chat` and
+            :obj:`~pyrogram.raw.types.Channel` mentioned in the update.
             You can access extra info about the chat (such as *title*, *participants_count*, etc...)
             by using the IDs you find in the *update* argument (e.g.: *chats[1701277281]*).
 
-    .. note::
-
+    Note:
         The following Empty or Forbidden types may exist inside the *users* and *chats* dictionaries.
         They mean you have been blocked by the user or banned from the group/channel.
 
@@ -86,5 +63,5 @@ class RawUpdateHandler(Handler[RawUpdateCallbackType]):
         - :obj:`~pyrogram.raw.types.ChannelForbidden`
     """
 
-    def __init__(self, callback: RawUpdateCallbackType, filters: Filter | None = None) -> None:
-        super().__init__(callback, filters)
+    def __init__(self, callback: Callable):
+        super().__init__(callback)

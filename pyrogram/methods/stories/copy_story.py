@@ -16,36 +16,34 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import logging
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Union, List, Optional
 
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram import enums, types
+import pyrogram
+from pyrogram import types, enums, utils
 
 log = logging.getLogger(__name__)
 
 
 class CopyStory:
     async def copy_story(
-        self: pyrogram.Client,
-        chat_id: int | str,
-        from_chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        from_chat_id: Union[int, str],
         story_id: int,
-        caption: str | None = None,
-        parse_mode: enums.ParseMode | None = None,
-        caption_entities: list[types.MessageEntity] | None = None,
-        period: int | None = None,
-        privacy: enums.StoriesPrivacyRules | None = None,
-        allowed_users: list[int | str] | None = None,
-        disallowed_users: list[int | str] | None = None,
-        protect_content: bool | None = None,
-    ) -> types.Story | None:
+        caption: str = None,
+        parse_mode: Optional["enums.ParseMode"] = None,
+        caption_entities: List["types.MessageEntity"] = None,
+        period: int = None,
+        privacy: "enums.StoriesPrivacyRules" = None,
+        allowed_users: List[Union[int, str]] = None,
+        disallowed_users: List[Union[int, str]] = None,
+        protect_content: bool = None
+    ) -> "types.Story":
         """Copy story.
 
-        .. include:: /_includes/usable-by/users.rst
+        .. include:: /_includes/usable-by/users-bots.rst
 
         Parameters:
             chat_id (``int`` | ``str``):
@@ -60,7 +58,7 @@ class CopyStory:
             story_id (``int``):
                 Message identifier in the chat specified in *from_chat_id*.
 
-            caption (``str``, *optional*):
+            caption (``string``, *optional*):
                 New caption for story, 0-1024 characters after entities parsing.
                 If not specified, the original caption is kept.
                 Pass "" (empty string) to remove the caption.
@@ -73,13 +71,13 @@ class CopyStory:
                 Story privacy.
                 Defaults to :obj:`~pyrogram.enums.StoriesPrivacyRules.PUBLIC`
 
-            allowed_users (List of ``int`` | ``str``, *optional*):
+            allowed_users (List of ``int``, *optional*):
                 List of user_id or chat_id of chat users who are allowed to view stories.
                 Note: chat_id available only with :obj:`~pyrogram.enums.StoriesPrivacyRules.SELECTED_USERS`.
                 Works with :obj:`~pyrogram.enums.StoriesPrivacyRules.CLOSE_FRIENDS`
                 and :obj:`~pyrogram.enums.StoriesPrivacyRules.SELECTED_USERS` only
 
-            disallowed_users (List of ``int`` | ``str``, *optional*):
+            disallowed_users (List of ``int``, *optional*):
                 List of user_id whos disallow to view the stories.
                 Note: Works with :obj:`~pyrogram.enums.StoriesPrivacyRules.PUBLIC`
                 and :obj:`~pyrogram.enums.StoriesPrivacyRules.CONTACTS` only
@@ -91,13 +89,11 @@ class CopyStory:
                 By default, texts are parsed using both Markdown and HTML styles.
                 You can combine both syntaxes together.
 
-            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
+            caption_entities (List of :obj:`~pyrogram.types.MessageEntity`):
                 List of special entities that appear in the new caption, which can be specified instead of *parse_mode*.
 
         Returns:
-            :obj:`~pyrogram.types.Story` | ``None``: On success, the copied story is returned, otherwise,
-            in case the upload is deliberately stopped with :meth:`~pyrogram.Client.stop_transmission`,
-            None is returned.
+            :obj:`~pyrogram.types.Story`: On success, the copied story is returned.
 
         Example:
             .. code-block:: python
@@ -117,5 +113,5 @@ class CopyStory:
             caption_entities=caption_entities,
             privacy=privacy,
             allowed_users=allowed_users,
-            disallowed_users=disallowed_users,
+            disallowed_users=disallowed_users
         )

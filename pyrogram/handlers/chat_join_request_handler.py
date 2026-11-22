@@ -16,23 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
-
-from pyrogram import types
+from typing import Callable
 
 from .handler import Handler
 
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram.filters import Filter
 
-ChatJoinRequestCallbackType = Callable[["pyrogram.Client", types.ChatJoinRequest], Any]
-
-
-class ChatJoinRequestHandler(Handler[ChatJoinRequestCallbackType]):
+class ChatJoinRequestHandler(Handler):
     """The ChatJoinRequest handler class. Used to handle join chat requests.
     It is intended to be used with :meth:`~pyrogram.Client.add_handler`.
 
@@ -45,7 +34,7 @@ class ChatJoinRequestHandler(Handler[ChatJoinRequestCallbackType]):
             *(client, chat_join_request)* as positional arguments (look at the section below for a detailed
             description).
 
-        filters (:obj:`~pyrogram.filters.Filter`):
+        filters (:obj:`Filters`):
             Pass one or more filters to allow only a subset of updates to be passed in your callback function.
 
     Other parameters:
@@ -56,9 +45,5 @@ class ChatJoinRequestHandler(Handler[ChatJoinRequestCallbackType]):
             The received chat join request.
     """
 
-    def __init__(
-        self,
-        callback: ChatJoinRequestCallbackType,
-        filters: Filter | None = None,
-    ) -> None:
+    def __init__(self, callback: Callable, filters=None):
         super().__init__(callback, filters)

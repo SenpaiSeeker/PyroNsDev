@@ -16,18 +16,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
 from pyrogram import raw
+from pyrogram import types
+from typing import Union
 
 
 class DeleteForumTopic:
     async def delete_forum_topic(
-        self: pyrogram.Client, chat_id: int | str, message_thread_id: int
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        topic_id: int
     ) -> bool:
-        """Use this method to delete a forum topic along with all its messages in a forum supergroup chat or a private chat with a user.
-        In the case of a supergroup chat the bot must be an administrator in the chat for this to work and must have the `can_delete_messages` administrator rights.
+        """Delete a forum topic.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
@@ -35,21 +36,22 @@ class DeleteForumTopic:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
 
-            message_thread_id (``int``):
-                Unique identifier for the target message thread of the forum topic.
+            topic_id (``int``):
+                Unique identifier (int) of the target forum topic.
 
         Returns:
-            ``bool``: On success, True is returned.
+            `bool`: On success, a Boolean is returned.
 
         Example:
             .. code-block:: python
 
-                await app.delete_forum_topic(chat_id, message_thread_id)
+                await app.delete_forum_topic(chat_id, topic_id)
         """
-        r = await self.invoke(
-            raw.functions.messages.DeleteTopicHistory(
-                peer=await self.resolve_peer(chat_id), top_msg_id=message_thread_id
+        await self.invoke(
+            raw.functions.channels.DeleteTopicHistory(
+                channel=await self.resolve_peer(chat_id),
+                top_msg_id=topic_id
             )
         )
 
-        return bool(r)
+        return True

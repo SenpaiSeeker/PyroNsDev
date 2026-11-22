@@ -16,14 +16,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
-
+from pyrogram import raw
 from ..object import Object
-
-if TYPE_CHECKING:
-    from pyrogram import raw
 
 
 class Username(Object):
@@ -32,15 +26,13 @@ class Username(Object):
     Parameters:
         username (``str``):
             User's or chat's username.
-
         editable (``bool``, *optional*):
             True, if it's a basic username; False, if it's a collectible username.
-
         active (``bool``, *optional*):
             True, if the collectible username is active.
     """
 
-    def __init__(self, *, username: str, editable: bool | None = None, active: bool | None = None):
+    def __init__(self, *, username: str, editable: bool = None, active: bool = None):
         super().__init__(None)
 
         self.username = username
@@ -48,7 +40,9 @@ class Username(Object):
         self.active = active
 
     @staticmethod
-    def _parse(username: raw.types.Username) -> Username:
+    def _parse(username: "raw.types.Username") -> "Username":
         return Username(
-            username=username.username, editable=username.editable, active=username.active
+            username=username.username,
+            editable=username.editable,
+            active=username.active
         )

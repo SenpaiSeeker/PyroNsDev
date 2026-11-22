@@ -1,22 +1,21 @@
-#  Kurigram - Telegram MTProto API Client Library for Python
-#
+#  Pyrofork - Telegram MTProto API Client Library for Python
 #  Copyright (C) 2017-present Dan <https://github.com/delivrance>
-#  Copyright (C) 2024-present KurimuzonAkuma <https://github.com/KurimuzonAkuma>
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
-#  This file is part of Kurigram.
+#  This file is part of Pyrofork.
 #
-#  Kurigram is free software: you can redistribute it and/or modify
+#  Pyrofork is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published
 #  by the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Kurigram is distributed in the hope that it will be useful,
+#  Pyrofork is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU Lesser General Public License for more details.
 #
 #  You should have received a copy of the GNU Lesser General Public License
-#  along with Kurigram. If not, see <https://www.gnu.org/licenses/>.
+#  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
 from enum import auto
 
@@ -26,9 +25,6 @@ from .auto_name import AutoName
 class MessageMediaType(AutoName):
     """Message media type enumeration used in :obj:`~pyrogram.types.Message`."""
 
-    UNSUPPORTED = auto()
-    "A message media content that is not supported in the current pyrogram version"
-
     AUDIO = auto()
     "Audio media"
 
@@ -37,9 +33,6 @@ class MessageMediaType(AutoName):
 
     PHOTO = auto()
     "Photo media"
-
-    LIVE_PHOTO = auto()
-    "Live photo media"
 
     STICKER = auto()
     "Sticker media"
@@ -68,8 +61,8 @@ class MessageMediaType(AutoName):
     POLL = auto()
     "Poll media"
 
-    WEB_PAGE = auto()
-    "Web page media"
+    WEB_PAGE_PREVIEW = auto()
+    "Web page preview media"
 
     DICE = auto()
     "Dice media"
@@ -80,20 +73,14 @@ class MessageMediaType(AutoName):
     GIVEAWAY = auto()
     "Giveaway media"
 
-    GIVEAWAY_WINNERS = auto()
-    "Giveaway winners media"
+    GIVEAWAY_RESULT = auto()
+    "Giveaway result media"
 
     STORY = auto()
-    "Story media"
+    "Forwarded story media"
 
     INVOICE = auto()
     "Invoice media"
 
     PAID_MEDIA = auto()
     "Paid media"
-
-    CHECKLIST = auto()
-    "Checklist media"
-
-    WIDGET = auto()
-    "HTML widget media"

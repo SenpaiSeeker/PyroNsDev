@@ -16,23 +16,15 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import List, Callable
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
-
-from pyrogram import types
-
+import pyrogram
+from pyrogram.filters import Filter
+from pyrogram.types import Message
 from .handler import Handler
 
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram.filters import Filter
 
-DeletedMessagesCallbackType = Callable[["pyrogram.Client", list[types.Message]], Any]
-
-
-class DeletedMessagesHandler(Handler[DeletedMessagesCallbackType]):
+class DeletedMessagesHandler(Handler):
     """The deleted messages handler class. Used to handle deleted messages coming from any chat
     (private, group, channel). It is intended to be used with :meth:`~pyrogram.Client.add_handler`
 
@@ -44,7 +36,7 @@ class DeletedMessagesHandler(Handler[DeletedMessagesCallbackType]):
             Pass a function that will be called when one or more messages have been deleted.
             It takes *(client, messages)* as positional arguments (look at the section below for a detailed description).
 
-        filters (:obj:`~pyrogram.filters.Filter`):
+        filters (:obj:`Filters`):
             Pass one or more filters to allow only a subset of messages to be passed
             in your callback function.
 
@@ -56,19 +48,14 @@ class DeletedMessagesHandler(Handler[DeletedMessagesCallbackType]):
             The deleted messages, as list.
     """
 
-    def __init__(
-        self,
-        callback: DeletedMessagesCallbackType,
-        filters: Filter | None = None,
-    ) -> None:
+    def __init__(self, callback: Callable, filters: Filter = None):
         super().__init__(callback, filters)
 
-    # The dispatcher pairs this handler class with a list of deleted messages, never a
-    #  single update, so the narrowing is the real contract.
-    async def check(self, client: pyrogram.Client, messages: list[types.Message]) -> bool:  # ty: ignore[invalid-method-override]
+    async def check(self, client: "pyrogram.Client", messages: List[Message]):
         # Every message should be checked, if at least one matches the filter True is returned
         # otherwise, or if the list is empty, False is returned
         for message in messages:
             if await super().check(client, message):
                 return True
-        return False
+        else:
+            return False

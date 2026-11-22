@@ -16,263 +16,84 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from .accepted_gift_types import AcceptedGiftTypes
-from .animated_chat_photo import AnimatedChatPhoto
-from .birthday import Birthday
+
 from .bot_verification import BotVerification
-from .business_bot_rights import BusinessBotRights
-from .business_connection import BusinessConnection
-from .business_intro import BusinessIntro
-from .business_recipients import BusinessRecipients
-from .business_weekly_open import BusinessWeeklyOpen
-from .business_working_hours import BusinessWorkingHours
 from .chat import Chat
-from .chat_share_theme import ChatShareTheme, ChatShareThemeEmoji, ChatShareThemeUniqueGift
-from .chat_share_theme_backdrop import ChatShareThemeBackdrop
 from .chat_admin_with_invite_links import ChatAdminWithInviteLinks
-from .chat_administrator_rights import ChatAdministratorRights, ChatPrivileges
+from .chat_color import ChatColor
 from .chat_event import ChatEvent
-from .chat_event_log_filters import ChatEventLogFilters
-from .chat_folder_invite_link_info import ChatFolderInviteLinkInfo
+from .chat_event_filter import ChatEventFilter
 from .chat_invite_link import ChatInviteLink
 from .chat_join_request import ChatJoinRequest
-from .chat_join_result import (
-    ChatJoinResult,
-    ChatJoinResultDeclined,
-    ChatJoinResultGuardBotApprovalRequired,
-    ChatJoinResultRequestSent,
-    ChatJoinResultSuccess,
-)
 from .chat_joiner import ChatJoiner
 from .chat_member import ChatMember
 from .chat_member_updated import ChatMemberUpdated
 from .chat_permissions import ChatPermissions
 from .chat_photo import ChatPhoto
-from .chat_photo_sticker import ChatPhotoSticker
+from .chat_preview import ChatPreview
+from .chat_privileges import ChatPrivileges
 from .chat_reactions import ChatReactions
-from .chat_settings import ChatSettings
-from .community import Community
-from .community_administrator_rights import CommunityAdministratorRights
-from .community_member_status import (
-    CommunityMemberStatus,
-    CommunityMemberStatusAdministrator,
-    CommunityMemberStatusBanned,
-    CommunityMemberStatusCreator,
-    CommunityMemberStatusLeft,
-    CommunityMemberStatusMember,
-)
-from .community_permissions import CommunityPermissions
 from .dialog import Dialog
 from .emoji_status import EmojiStatus
-from .emoji_type import EmojiType, EmojiTypeCustomEmoji, EmojiTypeEmoji
-from .failed_to_add_member import FailedToAddMember
 from .folder import Folder
-from .folder_invite_link import FolderInviteLink
-from .found_contacts import FoundContacts
-from .global_privacy_settings import GlobalPrivacySettings
-from .group_call_member import GroupCallMember
-from .history_cleared import HistoryCleared
-from .phone_call_ended import PhoneCallEnded
-from .phone_call_started import PhoneCallStarted
-from .privacy_rule import PrivacyRule
+from .invite_link_importer import InviteLinkImporter
 from .restriction import Restriction
-from .stories_stealth_mode import StoriesStealthMode
+from .peer_channel import PeerChannel
+from .peer_user import PeerUser
 from .user import User
-from .user_rating import UserRating
-from .user_ton_wallet_address import UserTonWalletAddress
-from .ton_wallet_ownership_proof import TonWalletOwnershipProof
-from .ton_wallet_ownership_proof_challenge import TonWalletOwnershipProofChallenge
-from .ton_wallet_state import TonWalletState
 from .username import Username
-from .verification_status import VerificationStatus
+from .forum_topic import ForumTopic
+from .forum_topic_created import ForumTopicCreated
+from .forum_topic_closed import ForumTopicClosed
+from .forum_topic_deleted import ForumTopicDeleted
+from .forum_topic_reopened import ForumTopicReopened
+from .forum_topic_edited import ForumTopicEdited
+from .general_forum_topic_hidden import GeneralTopicHidden
+from .general_forum_topic_unhidden import GeneralTopicUnhidden
 from .video_chat_ended import VideoChatEnded
 from .video_chat_members_invited import VideoChatMembersInvited
 from .video_chat_scheduled import VideoChatScheduled
 from .video_chat_started import VideoChatStarted
-from .chat_event_action import (
-    ChatEventAction,
-    ChatEventActionMessageEdited,
-    ChatEventActionMessageDeleted,
-    ChatEventActionMessagePinned,
-    ChatEventActionMessageUnpinned,
-    ChatEventActionPollStopped,
-    ChatEventActionMemberJoined,
-    ChatEventActionMemberJoinedByInviteLink,
-    ChatEventActionMemberJoinedByRequest,
-    ChatEventActionMemberInvited,
-    ChatEventActionMemberLeft,
-    ChatEventActionMemberPromoted,
-    ChatEventActionMemberRestricted,
-    ChatEventActionMemberTagChanged,
-    ChatEventActionMemberSubscriptionExtended,
-    ChatEventActionAvailableReactionsChanged,
-    ChatEventActionBackgroundChanged,
-    ChatEventActionDescriptionChanged,
-    ChatEventActionEmojiStatusChanged,
-    ChatEventActionLinkedChatChanged,
-    ChatEventActionLocationChanged,
-    ChatEventActionMessageAutoDeleteTimeChanged,
-    ChatEventActionPermissionsChanged,
-    ChatEventActionPhotoChanged,
-    ChatEventActionSlowModeDelayChanged,
-    ChatEventActionStickerSetChanged,
-    ChatEventActionCustomEmojiStickerSetChanged,
-    ChatEventActionTitleChanged,
-    ChatEventActionUsernameChanged,
-    ChatEventActionActiveUsernamesChanged,
-    ChatEventActionAccentColorChanged,
-    ChatEventActionProfileAccentColorChanged,
-    ChatEventActionHasProtectedContentToggled,
-    ChatEventActionInvitesToggled,
-    ChatEventActionIsAllHistoryAvailableToggled,
-    ChatEventActionHasAggressiveAntiSpamEnabledToggled,
-    ChatEventActionSignMessagesToggled,
-    ChatEventActionShowMessageSenderToggled,
-    ChatEventActionAutomaticTranslationToggled,
-    ChatEventActionInviteLinkEdited,
-    ChatEventActionInviteLinkRevoked,
-    ChatEventActionInviteLinkDeleted,
-    ChatEventActionVideoChatCreated,
-    ChatEventActionVideoChatEnded,
-    ChatEventActionVideoChatMuteNewParticipantsToggled,
-    ChatEventActionVideoChatParticipantIsMutedToggled,
-    ChatEventActionVideoChatParticipantVolumeLevelChanged,
-    ChatEventActionIsForumToggled,
-    ChatEventActionForumTopicCreated,
-    ChatEventActionForumTopicEdited,
-    ChatEventActionForumTopicToggleIsClosed,
-    ChatEventActionForumTopicToggleIsHidden,
-    ChatEventActionForumTopicDeleted,
-    ChatEventActionForumTopicPinned,
-)
+from .birthday import Birthday
+
 
 __all__ = [
-    "AcceptedGiftTypes",
-    "AnimatedChatPhoto",
-    "Birthday",
     "BotVerification",
-    "BusinessBotRights",
-    "BusinessConnection",
-    "BusinessIntro",
-    "BusinessRecipients",
-    "BusinessWeeklyOpen",
-    "BusinessWorkingHours",
     "Chat",
-    "ChatShareTheme",
-    "ChatShareThemeBackdrop",
-    "ChatShareThemeEmoji",
-    "ChatShareThemeUniqueGift",
-    "ChatAdminWithInviteLinks",
-    "ChatAdministratorRights",
-    "ChatEvent",
-    "ChatEventLogFilters",
-    "ChatFolderInviteLinkInfo",
-    "ChatInviteLink",
-    "ChatJoinRequest",
-    "ChatJoinResult",
-    "ChatJoinResultDeclined",
-    "ChatJoinResultGuardBotApprovalRequired",
-    "ChatJoinResultRequestSent",
-    "ChatJoinResultSuccess",
-    "ChatJoiner",
+    "ChatColor",
     "ChatMember",
-    "ChatMemberUpdated",
     "ChatPermissions",
     "ChatPhoto",
-    "ChatPhotoSticker",
-    "ChatPrivileges",
-    "ChatReactions",
-    "ChatSettings",
-    "Community",
-    "CommunityAdministratorRights",
-    "CommunityMemberStatus",
-    "CommunityMemberStatusAdministrator",
-    "CommunityMemberStatusBanned",
-    "CommunityMemberStatusCreator",
-    "CommunityMemberStatusLeft",
-    "CommunityMemberStatusMember",
-    "CommunityPermissions",
+    "ChatPreview",
+    "Birthday",
     "Dialog",
-    "EmojiStatus",
-    "EmojiType",
-    "EmojiTypeCustomEmoji",
-    "EmojiTypeEmoji",
-    "FailedToAddMember",
-    "Folder",
-    "FolderInviteLink",
-    "FoundContacts",
-    "GlobalPrivacySettings",
-    "GroupCallMember",
-    "HistoryCleared",
-    "PhoneCallEnded",
-    "PhoneCallStarted",
-    "PrivacyRule",
-    "Restriction",
-    "StoriesStealthMode",
+    "ForumTopic",
+    "ForumTopicCreated",
+    "ForumTopicClosed",
+    "ForumTopicDeleted",
+    "ForumTopicReopened",
+    "ForumTopicEdited",
+    "GeneralTopicHidden",
+    "GeneralTopicUnhidden",
+    "PeerChannel",
+    "PeerUser",
     "User",
-    "UserRating",
-    "UserTonWalletAddress",
-    "TonWalletOwnershipProof",
-    "TonWalletOwnershipProofChallenge",
-    "TonWalletState",
     "Username",
-    "VerificationStatus",
+    "Restriction",
+    "ChatEvent",
+    "ChatEventFilter",
+    "ChatInviteLink",
+    "InviteLinkImporter",
+    "ChatAdminWithInviteLinks",
+    "VideoChatStarted",
     "VideoChatEnded",
     "VideoChatMembersInvited",
+    "ChatMemberUpdated",
     "VideoChatScheduled",
-    "VideoChatStarted",
-    "ChatEventAction",
-    "ChatEventActionMessageEdited",
-    "ChatEventActionMessageDeleted",
-    "ChatEventActionMessagePinned",
-    "ChatEventActionMessageUnpinned",
-    "ChatEventActionPollStopped",
-    "ChatEventActionMemberJoined",
-    "ChatEventActionMemberJoinedByInviteLink",
-    "ChatEventActionMemberJoinedByRequest",
-    "ChatEventActionMemberInvited",
-    "ChatEventActionMemberLeft",
-    "ChatEventActionMemberPromoted",
-    "ChatEventActionMemberRestricted",
-    "ChatEventActionMemberTagChanged",
-    "ChatEventActionMemberSubscriptionExtended",
-    "ChatEventActionAvailableReactionsChanged",
-    "ChatEventActionBackgroundChanged",
-    "ChatEventActionDescriptionChanged",
-    "ChatEventActionEmojiStatusChanged",
-    "ChatEventActionLinkedChatChanged",
-    "ChatEventActionLocationChanged",
-    "ChatEventActionMessageAutoDeleteTimeChanged",
-    "ChatEventActionPermissionsChanged",
-    "ChatEventActionPhotoChanged",
-    "ChatEventActionSlowModeDelayChanged",
-    "ChatEventActionStickerSetChanged",
-    "ChatEventActionCustomEmojiStickerSetChanged",
-    "ChatEventActionTitleChanged",
-    "ChatEventActionUsernameChanged",
-    "ChatEventActionActiveUsernamesChanged",
-    "ChatEventActionAccentColorChanged",
-    "ChatEventActionProfileAccentColorChanged",
-    "ChatEventActionHasProtectedContentToggled",
-    "ChatEventActionInvitesToggled",
-    "ChatEventActionIsAllHistoryAvailableToggled",
-    "ChatEventActionHasAggressiveAntiSpamEnabledToggled",
-    "ChatEventActionSignMessagesToggled",
-    "ChatEventActionShowMessageSenderToggled",
-    "ChatEventActionAutomaticTranslationToggled",
-    "ChatEventActionInviteLinkEdited",
-    "ChatEventActionInviteLinkRevoked",
-    "ChatEventActionInviteLinkDeleted",
-    "ChatEventActionVideoChatCreated",
-    "ChatEventActionVideoChatEnded",
-    "ChatEventActionVideoChatMuteNewParticipantsToggled",
-    "ChatEventActionVideoChatParticipantIsMutedToggled",
-    "ChatEventActionVideoChatParticipantVolumeLevelChanged",
-    "ChatEventActionIsForumToggled",
-    "ChatEventActionForumTopicCreated",
-    "ChatEventActionForumTopicEdited",
-    "ChatEventActionForumTopicToggleIsClosed",
-    "ChatEventActionForumTopicToggleIsHidden",
-    "ChatEventActionForumTopicDeleted",
-    "ChatEventActionForumTopicPinned",
+    "ChatJoinRequest",
+    "ChatPrivileges",
+    "ChatJoiner",
+    "EmojiStatus",
+    "Folder",
+    "ChatReactions"
 ]

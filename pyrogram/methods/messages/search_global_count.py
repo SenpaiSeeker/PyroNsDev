@@ -16,20 +16,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
-from pyrogram import enums, raw
+from pyrogram import raw, enums
+from typing import Optional, TYPE_CHECKING
 
 
 class SearchGlobalCount:
     async def search_global_count(
-        self: pyrogram.Client,
+        self: "pyrogram.Client",
         query: str = "",
-        filter: enums.MessagesFilter = enums.MessagesFilter.EMPTY,
-        channels_only: bool | None = None,
-        groups_only: bool | None = None,
-        users_only: bool | None = None,
+        filter: "enums.MessagesFilter" = enums.MessagesFilter.EMPTY,
+        channels_only: Optional[bool] = None,
+        groups_only: Optional[bool] = None,
+        users_only: Optional[bool] = None,
     ) -> int:
         """Get the count of messages resulting from a global search.
 
@@ -69,11 +68,11 @@ class SearchGlobalCount:
                 broadcasts_only=channels_only,
                 groups_only=groups_only,
                 users_only=users_only,
-                limit=1,
+                limit=1
             )
         )
 
-        if isinstance(r, (raw.types.messages.MessagesSlice, raw.types.messages.ChannelMessages)):
+        if hasattr(r, "count"):
             return r.count
-
-        return len(r.messages)
+        else:
+            return len(r.messages)

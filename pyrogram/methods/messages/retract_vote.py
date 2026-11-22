@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
 from pyrogram import raw
@@ -25,8 +25,10 @@ from pyrogram import types
 
 class RetractVote:
     async def retract_vote(
-        self: pyrogram.Client, chat_id: int | str, message_id: int
-    ) -> types.Poll:
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        message_id: int
+    ) -> "types.Poll":
         """Retract your vote in a poll.
 
         .. include:: /_includes/usable-by/users.rst
@@ -50,11 +52,10 @@ class RetractVote:
         """
         r = await self.invoke(
             raw.functions.messages.SendVote(
-                peer=await self.resolve_peer(chat_id), msg_id=message_id, options=[]
+                peer=await self.resolve_peer(chat_id),
+                msg_id=message_id,
+                options=[]
             )
         )
 
-        users = {i.id: i for i in r.users}
-        chats = {i.id: i for i in r.chats}
-
-        return await types.Poll._parse(self, r.updates[0], None, users=users, chats=chats)
+        return types.Poll._parse(self, r.updates[0])

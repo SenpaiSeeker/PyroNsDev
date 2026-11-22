@@ -16,16 +16,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 from enum import Enum
-from typing import Any
 
 
 class AutoName(Enum):
-    @staticmethod
-    def _generate_next_value_(name: str, start: int, count: int, last_values: list[Any]) -> str:
-        return name.lower()
+    def _generate_next_value_(self, *args):
+        return self.lower()
 
     def __repr__(self):
         return f"pyrogram.enums.{self}"

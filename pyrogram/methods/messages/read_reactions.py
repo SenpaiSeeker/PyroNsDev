@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
 from pyrogram import raw
@@ -24,7 +24,8 @@ from pyrogram import raw
 
 class ReadReactions:
     async def read_reactions(
-        self: pyrogram.Client, chat_id: int | str, topic_id: int | None = None
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
     ) -> bool:
         """Mark a reaction in the chat as read.
 
@@ -36,10 +37,6 @@ class ReadReactions:
                 For your personal cloud (Saved Messages) you can simply use "me" or "self".
                 For a contact that exists in your Telegram address book you can use his phone number (str).
 
-            topic_id (``int``, *optional*):
-                Mark as read only reactions to messages within the specified forum topic.
-                By default, no topic is applied and all reactions marked as read.
-
         Returns:
             ``bool`` - On success, True is returned.
 
@@ -48,13 +45,10 @@ class ReadReactions:
 
                 # Mark the chat reaction as read
                 await app.read_reactions(chat_id)
-
-                # Mark the chat reaction as read in specified topic
-                await app.read_reactions(chat_id, topic_id)
         """
         r = await self.invoke(
             raw.functions.messages.ReadReactions(
-                peer=await self.resolve_peer(chat_id), top_msg_id=topic_id
+                peer=await self.resolve_peer(chat_id)
             )
         )
 

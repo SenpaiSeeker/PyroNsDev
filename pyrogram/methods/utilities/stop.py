@@ -16,19 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import asyncio
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import pyrogram
+import pyrogram
 
 
 class Stop:
     async def stop(
-        self: pyrogram.Client, block: bool = True, clear_handlers: bool = True
-    ) -> pyrogram.Client:
+        self: "pyrogram.Client",
+        block: bool = True
+    ):
         """Stop the Client.
 
         This method disconnects the client from Telegram and stops the underlying tasks.
@@ -39,10 +34,6 @@ class Stop:
                 you want to stop the own client *within* a handler in order not to cause a deadlock.
                 Defaults to True.
 
-            clear_handlers (``bool``, *optional*):
-                Clear the already existing handlers on stop the client.
-                Default to True.
-
         Returns:
             :obj:`~pyrogram.Client`: The stopped client itself.
 
@@ -52,29 +43,27 @@ class Stop:
         Example:
             .. code-block:: python
 
-                import asyncio
-
                 from pyrogram import Client
+
+                app = Client("my_account")
 
 
                 async def main():
-                    app = Client("my_account")
-
                     await app.start()
                     ...  # Invoke API methods
                     await app.stop()
 
 
-                asyncio.run(main())
+                app.run(main())
         """
 
         async def do_it():
-            await self.terminate(clear_handlers=clear_handlers)
+            await self.terminate()
             await self.disconnect()
 
         if block:
             await do_it()
         else:
-            asyncio.create_task(do_it())
+            self.loop.create_task(do_it())
 
         return self

@@ -16,66 +16,36 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import asyncio
-import base64
-import logging
+import inspect
 import sqlite3
-import struct
 import time
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import List, Tuple, Any
 
 from pyrogram import raw
-
+from .storage import Storage
 from .. import utils
-from .storage import MISSING, Storage, UpdateState
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable
-
-log = logging.getLogger(__name__)
-
 
 # language=SQLite
 SCHEMA = """
 CREATE TABLE sessions
 (
-    dc_id          INTEGER PRIMARY KEY,
-    server_address TEXT,
-    port           INTEGER,
-    api_id         INTEGER,
-    test_mode      INTEGER,
-    auth_key       BLOB,
-    date           INTEGER NOT NULL,
-    user_id        INTEGER,
-    is_bot         INTEGER
+    dc_id     INTEGER PRIMARY KEY,
+    api_id    INTEGER,
+    test_mode INTEGER,
+    auth_key  BLOB,
+    date      INTEGER NOT NULL,
+    user_id   INTEGER,
+    is_bot    INTEGER
 );
 
 CREATE TABLE peers
 (
     id             INTEGER PRIMARY KEY,
     access_hash    INTEGER,
-    type           TEXT NOT NULL,
+    type           INTEGER NOT NULL,
+    username       TEXT,
     phone_number   TEXT,
     last_update_on INTEGER NOT NULL DEFAULT (CAST(STRFTIME('%s', 'now') AS INTEGER))
-);
-
-CREATE TABLE usernames
-(
-    id       INTEGER,
-    username TEXT,
-    FOREIGN KEY (id) REFERENCES peers(id)
-);
-
-CREATE TABLE update_state
-(
-    id   INTEGER PRIMARY KEY,
-    pts  INTEGER,
-    qts  INTEGER,
-    date INTEGER,
-    seq  INTEGER
 );
 
 CREATE TABLE version
@@ -84,9 +54,8 @@ CREATE TABLE version
 );
 
 CREATE INDEX idx_peers_id ON peers (id);
+CREATE INDEX idx_peers_username ON peers (username);
 CREATE INDEX idx_peers_phone_number ON peers (phone_number);
-CREATE INDEX idx_usernames_id ON usernames (id);
-CREATE INDEX idx_usernames_username ON usernames (username);
 
 CREATE TRIGGER trg_peers_last_update_on
     AFTER UPDATE
@@ -98,402 +67,75 @@ BEGIN
 END;
 """
 
-USERNAMES_SCHEMA = """
-CREATE TABLE usernames
-(
-    id       INTEGER,
-    username TEXT,
-    FOREIGN KEY (id) REFERENCES peers(id)
-);
-
-CREATE INDEX idx_usernames_username ON usernames (username);
-"""
-
-UPDATE_STATE_SCHEMA = """
-CREATE TABLE update_state
-(
-    id   INTEGER PRIMARY KEY,
-    pts  INTEGER,
-    qts  INTEGER,
-    date INTEGER,
-    seq  INTEGER
-);
-"""
-
-TEST = {1: "149.154.175.10", 2: "149.154.167.40", 3: "149.154.175.117"}
-
-PROD = {
-    1: "149.154.175.53",
-    2: "149.154.167.51",
-    3: "149.154.175.100",
-    4: "149.154.167.91",
-    5: "91.108.56.130",
-    203: "91.105.192.100",
-}
-
 
 def get_input_peer(peer_id: int, access_hash: int, peer_type: str):
-    if peer_type in {"user", "bot"}:
-        return raw.types.InputPeerUser(user_id=peer_id, access_hash=access_hash)
+    if peer_type in ["user", "bot"]:
+        return raw.types.InputPeerUser(
+            user_id=peer_id,
+            access_hash=access_hash
+        )
 
     if peer_type == "group":
-        return raw.types.InputPeerChat(chat_id=-peer_id)
+        return raw.types.InputPeerChat(
+            chat_id=-peer_id
+        )
 
-    if peer_type in {"direct", "channel", "forum", "supergroup", "community"}:
+    if peer_type in ["channel", "supergroup"]:
         return raw.types.InputPeerChannel(
-            channel_id=utils.get_channel_id(peer_id), access_hash=access_hash
+            channel_id=utils.get_channel_id(peer_id),
+            access_hash=access_hash
         )
 
     raise ValueError(f"Invalid peer type: {peer_type}")
 
 
 class SQLiteStorage(Storage):
-    VERSION = 7
+    VERSION = 3
     USERNAME_TTL = 8 * 60 * 60
-    FILE_EXTENSION = ".session"
 
-    def __init__(
-        self,
-        name: str,
-        workdir: Path,
-        session_string: str | None = None,
-        in_memory: bool = False,
-        use_wal: bool = False,
-        do_vacuum: bool = True,
-    ):
-        self.name = name
-        self._conn: sqlite3.Connection | None = None
+    def __init__(self, name: str):
+        super().__init__(name)
 
-        self.session_string = session_string
-        self.in_memory = in_memory
-        self.use_wal = use_wal
-        self.do_vacuum = do_vacuum
+        self.conn = None  # type: sqlite3.Connection
 
-        self._update_state_cache: dict[int, UpdateState] = {}
-        self._update_state_dirty: set[int] = set()
-        self._update_state_flush_task = None
-
-        if self.in_memory:
-            self.database = ":memory:"
-        else:
-            self.database = workdir / (self.name + self.FILE_EXTENSION)
-
-    @property
-    def conn(self) -> sqlite3.Connection:
-        # Every method below this point runs only after open() has set a real
-        #  connection; raising here narrows the type once for all of them
-        #  instead of repeating the same guard at every call site.
-        if self._conn is None:
-            msg = "`SQLiteStorage.conn` accessed before `open()`"
-            raise RuntimeError(msg)
-
-        return self._conn
-
-    @conn.setter
-    def conn(self, value: sqlite3.Connection | None) -> None:
-        self._conn = value
-
-    async def update(self):
-        version = await self.version()
-
-        if version == 1:
-            with self.conn:
-                self.conn.execute("DELETE FROM peers;")
-
-            version += 1
-
-        if version == 2:
-            with self.conn:
-                self.conn.execute("ALTER TABLE sessions ADD api_id INTEGER;")
-
-            version += 1
-
-        if version == 3:
-            with self.conn:
-                self.conn.executescript(USERNAMES_SCHEMA)
-
-            version += 1
-
-        if version == 4:
-            with self.conn:
-                self.conn.executescript(UPDATE_STATE_SCHEMA)
-
-            version += 1
-
-        if version == 5:
-            with self.conn:
-                self.conn.execute("CREATE INDEX idx_usernames_id ON usernames (id);")
-
-            version += 1
-
-        if version == 6:
-            if await self.test_mode():
-                address = TEST[await self.dc_id()]
-                port = 80
-            else:
-                address = PROD[await self.dc_id()]
-                port = 443
-
-            with self.conn:
-                self.conn.execute("ALTER TABLE sessions ADD server_address TEXT;")
-                self.conn.execute("ALTER TABLE sessions ADD port INTEGER;")
-
-                self.conn.execute("UPDATE sessions SET server_address = ?;", (address,))
-                self.conn.execute("UPDATE sessions SET port = ?;", (port,))
-
-            version += 1
-
-        await self.version(version)
-
-    async def create(self):
+    def create(self):
         with self.conn:
             self.conn.executescript(SCHEMA)
 
-            self.conn.execute("INSERT INTO version VALUES (?)", (self.VERSION,))
+            self.conn.execute(
+                "INSERT INTO version VALUES (?)",
+                (self.VERSION,)
+            )
 
             self.conn.execute(
-                "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (2, "149.154.167.51", 443, None, None, None, 0, None, None),
+                "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (2, None, None, None, 0, None, None)
             )
 
     async def open(self):
-        if self.in_memory:
-            self.conn = sqlite3.connect(":memory:", timeout=1, check_same_thread=False)
-            await self.create()
-
-            if self.session_string:
-                # Old format
-                if len(self.session_string) in [
-                    self.SESSION_STRING_SIZE,
-                    self.SESSION_STRING_SIZE_64,
-                ]:
-                    dc_id, test_mode, auth_key, user_id, is_bot = struct.unpack(
-                        (
-                            self.OLD_SESSION_STRING_FORMAT
-                            if len(self.session_string) == self.SESSION_STRING_SIZE
-                            else self.OLD_SESSION_STRING_FORMAT_64
-                        ),
-                        base64.urlsafe_b64decode(
-                            self.session_string + "=" * (-len(self.session_string) % 4)
-                        ),
-                    )
-
-                    await self.dc_id(dc_id)
-                    await self.test_mode(test_mode)
-                    await self.auth_key(auth_key)
-                    await self.user_id(user_id)
-                    await self.is_bot(is_bot)
-                    await self.date(0)
-
-                    log.warning(
-                        "You are using an old session string format. Use export_session_string to update"
-                    )
-                    return
-
-                dc_id, api_id, test_mode, auth_key, user_id, is_bot = struct.unpack(
-                    self.SESSION_STRING_FORMAT,
-                    base64.urlsafe_b64decode(
-                        self.session_string + "=" * (-len(self.session_string) % 4)
-                    ),
-                )
-
-                await self.dc_id(dc_id)
-
-                if test_mode:
-                    await self.server_address(TEST[dc_id])
-                    await self.port(80)
-                else:
-                    await self.server_address(PROD[dc_id])
-                    await self.port(443)
-
-                await self.api_id(api_id)
-                await self.test_mode(test_mode)
-                await self.auth_key(auth_key)
-                await self.user_id(user_id)
-                await self.is_bot(is_bot)
-                await self.date(0)
-
-            return
-
-        path = self.database
-        file_exists = isinstance(path, Path) and path.is_file()
-
-        self.conn = sqlite3.connect(str(path), timeout=1, check_same_thread=False)
-
-        if self.use_wal:
-            self.conn.execute("PRAGMA journal_mode=WAL")
-        else:
-            self.conn.execute("PRAGMA journal_mode=DELETE")
-
-        if file_exists:
-            await self.update()
-        else:
-            await self.create()
-
-        if self.do_vacuum:
-            with self.conn:
-                self.conn.execute("VACUUM")
+        raise NotImplementedError
 
     async def save(self):
         await self.date(int(time.time()))
-        await self._flush_update_states()
         self.conn.commit()
 
     async def close(self):
-        try:
-            await self._flush_update_states()
-            self.conn.commit()
-        except Exception:
-            pass
         self.conn.close()
 
     async def delete(self):
-        if not self.in_memory:
-            Path(self.database).unlink()
+        raise NotImplementedError
 
-    async def update_peers(self, peers: Iterable[tuple[int, int, str, str | None]]):
+    async def update_peers(self, peers: List[Tuple[int, int, str, str, str]]):
         self.conn.executemany(
-            "REPLACE INTO peers (id, access_hash, type, phone_number) VALUES (?, ?, ?, ?)", peers
-        )
-
-    async def update_usernames(self, usernames: Iterable[tuple[int, list[str | None]]]):
-        usernames = list(usernames)
-
-        if not usernames:
-            return
-
-        ids = [id_ for id_, _ in usernames]
-        placeholders = ", ".join("?" for _ in ids)
-
-        self.conn.execute(
-            f"DELETE FROM usernames WHERE id IN ({placeholders})",
-            ids,
-        )
-
-        self.conn.executemany(
-            "REPLACE INTO usernames (id, username) VALUES (?, ?)",
-            [
-                (id_, username)
-                for id_, names in usernames
-                for username in names
-                if username is not None
-            ],
-        )
-
-    async def get_update_states(self, ids: int | Iterable[int] | None = None):
-        if ids is not None:
-            state_ids = (ids,) if isinstance(ids, int) else tuple(ids)
-            if not state_ids:
-                return []
-            result = []
-            missing = []
-            for sid in state_ids:
-                cached = self._update_state_cache.get(sid)
-                if cached is not None:
-                    result.append(cached)
-                else:
-                    missing.append(sid)
-            if missing:
-                placeholders = ", ".join("?" for _ in missing)
-                rows = self.conn.execute(
-                    f"SELECT id, pts, qts, date, seq FROM update_state WHERE id IN ({placeholders})",
-                    tuple(missing),
-                ).fetchall()
-                for row in rows:
-                    st = UpdateState(*row)
-                    self._update_state_cache.setdefault(st.id, st)
-                    result.append(st)
-            return result
-
-        rows = self.conn.execute(
-            "SELECT id, pts, qts, date, seq FROM update_state ORDER BY date ASC"
-        ).fetchall()
-        merged = {row[0]: UpdateState(*row) for row in rows}
-        merged.update(self._update_state_cache)
-        return sorted(merged.values(), key=lambda x: x.date or 0)
-
-    async def set_update_state(self, update_state: UpdateState | Iterable[UpdateState]):
-        states = [update_state] if isinstance(update_state, UpdateState) else list(update_state)
-        for state in states:
-            old = self._update_state_cache.get(state.id)
-            if old is None:
-                self._update_state_cache[state.id] = state
-            else:
-                self._update_state_cache[state.id] = UpdateState(
-                    state.id,
-                    state.pts if state.pts is not None else old.pts,
-                    state.qts if state.qts is not None else old.qts,
-                    state.date if state.date is not None else old.date,
-                    state.seq if state.seq is not None else old.seq,
-                )
-            self._update_state_dirty.add(state.id)
-
-        if len(self._update_state_dirty) >= 200:
-            await self._flush_update_states()
-        else:
-            self._schedule_update_state_flush()
-
-    def _schedule_update_state_flush(self):
-        if self._update_state_flush_task and not self._update_state_flush_task.done():
-            return
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return
-        self._update_state_flush_task = loop.create_task(self._flush_update_states_soon())
-
-    async def _flush_update_states_soon(self):
-        try:
-            await asyncio.sleep(30)
-            await self._flush_update_states()
-        except Exception:
-            pass
-
-    async def _flush_update_states(self):
-        if not self._update_state_dirty or self._conn is None:
-            return
-        dirty = list(self._update_state_dirty)
-        self._update_state_dirty.clear()
-        rows = []
-        for sid in dirty:
-            st = self._update_state_cache.get(sid)
-            if st is not None:
-                rows.append((st.id, st.pts, st.qts, st.date, st.seq))
-        if not rows:
-            return
-        self.conn.executemany(
-            "INSERT INTO update_state (id, pts, qts, date, seq) VALUES (?, ?, ?, ?, ?) "
-            "ON CONFLICT(id) DO UPDATE SET "
-            "pts = COALESCE(excluded.pts, update_state.pts), "
-            "qts = COALESCE(excluded.qts, update_state.qts), "
-            "date = COALESCE(excluded.date, update_state.date), "
-            "seq = COALESCE(excluded.seq, update_state.seq)",
-            rows,
-        )
-
-    async def delete_update_state(self, state_id):
-        if isinstance(state_id, int):
-            self.conn.execute(
-                "DELETE FROM update_state WHERE id = ?",
-                (state_id,),
-            )
-            return
-
-        state_ids = tuple(state_id)
-
-        if not state_ids:
-            return
-
-        placeholders = ", ".join("?" for _ in state_ids)
-
-        self.conn.execute(
-            f"DELETE FROM update_state WHERE id IN ({placeholders})",
-            state_ids,
+            "REPLACE INTO peers (id, access_hash, type, username, phone_number)"
+            "VALUES (?, ?, ?, ?, ?)",
+            peers
         )
 
     async def get_peer_by_id(self, peer_id: int):
         r = self.conn.execute(
-            "SELECT id, access_hash, type FROM peers WHERE id = ?", (peer_id,)
+            "SELECT id, access_hash, type FROM peers WHERE id = ?",
+            (peer_id,)
         ).fetchone()
 
         if r is None:
@@ -503,11 +145,9 @@ class SQLiteStorage(Storage):
 
     async def get_peer_by_username(self, username: str):
         r = self.conn.execute(
-            "SELECT p.id, p.access_hash, p.type, p.last_update_on FROM peers p "
-            "JOIN usernames u ON p.id = u.id "
-            "WHERE u.username = ? "
-            "ORDER BY p.last_update_on DESC",
-            (username,),
+            "SELECT id, access_hash, type, last_update_on FROM peers WHERE username = ?"
+            "ORDER BY last_update_on DESC",
+            (username,)
         ).fetchone()
 
         if r is None:
@@ -520,7 +160,8 @@ class SQLiteStorage(Storage):
 
     async def get_peer_by_phone_number(self, phone_number: str):
         r = self.conn.execute(
-            "SELECT id, access_hash, type FROM peers WHERE phone_number = ?", (phone_number,)
+            "SELECT id, access_hash, type FROM peers WHERE phone_number = ?",
+            (phone_number,)
         ).fetchone()
 
         if r is None:
@@ -528,46 +169,54 @@ class SQLiteStorage(Storage):
 
         return get_input_peer(*r)
 
-    async def _get(self, table: str, attr: str):
-        return self.conn.execute(f"SELECT {attr} FROM {table}").fetchone()[0]
+    def _get(self):
+        attr = inspect.stack()[2].function
 
-    async def _set(self, table: str, attr: str, value: Any):
+        return self.conn.execute(
+            f"SELECT {attr} FROM sessions"
+        ).fetchone()[0]
+
+    def _set(self, value: Any):
+        attr = inspect.stack()[2].function
+
         with self.conn:
-            self.conn.execute(f"UPDATE {table} SET {attr} = ?", (value,))
+            self.conn.execute(
+                f"UPDATE sessions SET {attr} = ?",
+                (value,)
+            )
 
-    async def _accessor(self, table: str, attr: str, value: Any = MISSING):
-        return (
-            await self._get(table, attr)
-            if value is MISSING
-            else await self._set(table, attr, value)
-        )
+    def _accessor(self, value: Any = object):
+        return self._get() if value == object else self._set(value)
 
-    async def dc_id(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("sessions", "dc_id", value)
+    async def dc_id(self, value: int = object):
+        return self._accessor(value)
 
-    async def server_address(self, value: str | None | type[object] = MISSING) -> str | None:
-        return await self._accessor("sessions", "server_address", value)
+    async def api_id(self, value: int = object):
+        return self._accessor(value)
 
-    async def port(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("sessions", "port", value)
+    async def test_mode(self, value: bool = object):
+        return self._accessor(value)
 
-    async def api_id(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("sessions", "api_id", value)
+    async def auth_key(self, value: bytes = object):
+        return self._accessor(value)
 
-    async def test_mode(self, value: bool | None | type[object] = MISSING) -> bool | None:
-        return await self._accessor("sessions", "test_mode", value)
+    async def date(self, value: int = object):
+        return self._accessor(value)
 
-    async def auth_key(self, value: bytes | None | type[object] = MISSING) -> bytes | None:
-        return await self._accessor("sessions", "auth_key", value)
+    async def user_id(self, value: int = object):
+        return self._accessor(value)
 
-    async def date(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("sessions", "date", value)
+    async def is_bot(self, value: bool = object):
+        return self._accessor(value)
 
-    async def user_id(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("sessions", "user_id", value)
-
-    async def is_bot(self, value: bool | None | type[object] = MISSING) -> bool | None:
-        return await self._accessor("sessions", "is_bot", value)
-
-    async def version(self, value: int | None | type[object] = MISSING) -> int | None:
-        return await self._accessor("version", "number", value)
+    def version(self, value: int = object):
+        if value == object:
+            return self.conn.execute(
+                "SELECT number FROM version"
+            ).fetchone()[0]
+        else:
+            with self.conn:
+                self.conn.execute(
+                    "UPDATE version SET number = ?",
+                    (value,)
+                )

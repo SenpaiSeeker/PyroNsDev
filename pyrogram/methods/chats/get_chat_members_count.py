@@ -16,14 +16,17 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
 from pyrogram import raw
 
 
 class GetChatMembersCount:
-    async def get_chat_members_count(self: pyrogram.Client, chat_id: int | str) -> int | None:
+    async def get_chat_members_count(
+        self: "pyrogram.Client",
+        chat_id: Union[int, str]
+    ) -> int:
         """Get the number of members in a chat.
 
         .. include:: /_includes/usable-by/users-bots.rst
@@ -33,8 +36,7 @@ class GetChatMembersCount:
                 Unique identifier (int) or username (str) of the target chat.
 
         Returns:
-            ``int`` | ``None``: On success, the chat members count is returned, otherwise, in case the
-            server did not send the count, None is returned.
+            ``int``: On success, the chat members count is returned.
 
         Raises:
             ValueError: In case a chat id belongs to user.
@@ -48,11 +50,19 @@ class GetChatMembersCount:
         peer = await self.resolve_peer(chat_id)
 
         if isinstance(peer, raw.types.InputPeerChat):
-            r = await self.invoke(raw.functions.messages.GetChats(id=[peer.chat_id]))
+            r = await self.invoke(
+                raw.functions.messages.GetChats(
+                    id=[peer.chat_id]
+                )
+            )
 
             return r.chats[0].participants_count
         elif isinstance(peer, raw.types.InputPeerChannel):
-            r = await self.invoke(raw.functions.channels.GetFullChannel(channel=peer))
+            r = await self.invoke(
+                raw.functions.channels.GetFullChannel(
+                    channel=peer
+                )
+            )
 
             return r.full_chat.participants_count
         else:

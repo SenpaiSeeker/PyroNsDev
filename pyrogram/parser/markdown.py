@@ -16,21 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import html
 import re
-import urllib.parse
-from typing import TYPE_CHECKING
+from typing import Optional
 
+import pyrogram
 from pyrogram.enums import MessageEntityType
-
 from . import utils
 from .html import HTML
-
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram import types
 
 BOLD_DELIM = "**"
 ITALIC_DELIM = "__"
@@ -41,189 +34,96 @@ CODE_DELIM = "`"
 PRE_DELIM = "```"
 BLOCKQUOTE_DELIM = ">"
 BLOCKQUOTE_EXPANDABLE_DELIM = "**>"
-BLOCKQUOTE_EXPANDABLE_END_DELIM = "||"
 
-MARKDOWN_RE = re.compile(
-    r"({d})|(!?)\[(.+?)\]\((.+?)\)".format(
-        d="|".join(
-            [
-                "".join(i)
-                for i in [
-                    [rf"\{j}" for j in i]
-                    for i in [
-                        PRE_DELIM,
-                        CODE_DELIM,
-                        STRIKE_DELIM,
-                        UNDERLINE_DELIM,
-                        ITALIC_DELIM,
-                        BOLD_DELIM,
-                        SPOILER_DELIM,
-                    ]
-                ]
+MARKDOWN_RE = re.compile(r"({d})".format(
+    d="|".join(
+        ["".join(i) for i in [
+            [rf"\{j}" for j in i]
+            for i in [
+                PRE_DELIM,
+                CODE_DELIM,
+                STRIKE_DELIM,
+                UNDERLINE_DELIM,
+                ITALIC_DELIM,
+                BOLD_DELIM,
+                SPOILER_DELIM
             ]
-        )
-    )
-)
+        ]]
+    )))
+URL_RE = re.compile(r"(!?)\[(.+?)\]\((.+?)\)")
 
 OPENING_TAG = "<{}>"
 CLOSING_TAG = "</{}>"
 URL_MARKUP = '<a href="{}">{}</a>'
-EMOJI_MARKUP = '<tg-emoji emoji-id="{}">{}</tg-emoji>'
-DATE_TIME_MARKUP = '<tg-time unix="{}">{}</tg-time>'
-FORMATTED_DATE_TIME_MARKUP = '<tg-time unix="{}" format="{}">{}</tg-time>'
+EMOJI_MARKUP = '<emoji id={}>{}</emoji>'
 FIXED_WIDTH_DELIMS = [CODE_DELIM, PRE_DELIM]
+CODE_TAG_RE = re.compile(r"<code>.*?</code>")
 
 
 class Markdown:
-    # TODO: Full refactor
-    def __init__(self, client: pyrogram.Client | None):
+    def __init__(self, client: Optional["pyrogram.Client"]):
         self.html = HTML(client)
 
-    @staticmethod
-    def escape_and_create_quotes(text: str, strict: bool):
-        text_lines: list[str | None] = text.splitlines()
+    def blockquote_parser(self, text):
+        text = re.sub(r'\n&gt;', '\n>', re.sub(r'^&gt;', '>', text))
+        lines = text.split('\n')
+        result = []
 
-        # Indexes of Already escaped lines
-        html_escaped_list: list[int] = []
+        in_blockquote = False
 
-        # Temporary Queue to hold lines to be quoted
-        to_quote_list: list[tuple[int, str]] = []
-
-        def create_blockquote(expandable: bool = False) -> None:
-            """
-            Merges all lines in quote_queue into first line of queue
-            Encloses that line in html quote
-            Replaces rest of the lines with None placeholders to preserve indexes
-            """
-            if len(to_quote_list) == 0:
-                return
-
-            joined_lines = "\n".join([i[1] for i in to_quote_list])
-
-            first_line_index, _ = to_quote_list[0]
-            text_lines[first_line_index] = (
-                f"<blockquote{' expandable' if expandable else ''}>{joined_lines}</blockquote>"
-            )
-
-            for line_to_remove in to_quote_list[1:]:
-                text_lines[line_to_remove[0]] = None
-
-            to_quote_list.clear()
-
-        # Handle Expandable Quote
-        inside_blockquote = False
-        for index, line in enumerate(text_lines):
-            # `create_blockquote()` only nils out indexes strictly before the current one
-            # (already-merged lines), so `line` here is never one of its `None` placeholders.
-            if line is None:
-                continue
-
-            if line.startswith(BLOCKQUOTE_EXPANDABLE_DELIM) and not inside_blockquote:
-                delim_stripped_line = line[
-                    len(BLOCKQUOTE_EXPANDABLE_DELIM)
-                    + (1 if line.startswith(f"{BLOCKQUOTE_EXPANDABLE_DELIM} ") else 0) :
-                ]
-                parsed_line = html.escape(delim_stripped_line) if strict else delim_stripped_line
-
-                to_quote_list.append((index, parsed_line))
-                html_escaped_list.append(index)
-
-                inside_blockquote = True
-                continue
-
-            elif line.endswith(BLOCKQUOTE_EXPANDABLE_END_DELIM) and inside_blockquote:
-                unwrapped_line = line
-                if unwrapped_line.startswith(BLOCKQUOTE_DELIM):
-                    unwrapped_line = unwrapped_line[
-                        len(BLOCKQUOTE_DELIM)
-                        + (1 if unwrapped_line.startswith(f"{BLOCKQUOTE_DELIM} ") else 0) :
-                    ]
-
-                delim_stripped_line = unwrapped_line[: -len(BLOCKQUOTE_EXPANDABLE_END_DELIM)]
-
-                parsed_line = html.escape(delim_stripped_line) if strict else delim_stripped_line
-
-                to_quote_list.append((index, parsed_line))
-                html_escaped_list.append(index)
-
-                inside_blockquote = False
-
-                create_blockquote(expandable=True)
-
-            if inside_blockquote:
-                parsed_line = line[
-                    len(BLOCKQUOTE_DELIM) + (1 if line.startswith(f"{BLOCKQUOTE_DELIM} ") else 0) :
-                ]
-                parsed_line = html.escape(parsed_line) if strict else parsed_line
-                to_quote_list.append((index, parsed_line))
-                html_escaped_list.append(index)
-
-        # Handle Single line/Continued Quote
-        for index, line in enumerate(text_lines):
-            if line is None:
-                continue
-
+        for line in lines:
             if line.startswith(BLOCKQUOTE_DELIM):
-                delim_stripped_line = line[
-                    len(BLOCKQUOTE_DELIM) + (1 if line.startswith(f"{BLOCKQUOTE_DELIM} ") else 0) :
-                ]
-                parsed_line = html.escape(delim_stripped_line) if strict else delim_stripped_line
+                if not in_blockquote:
+                    line = re.sub(r'^> ', OPENING_TAG.format("blockquote"), line)
+                    line = re.sub(r'^>', OPENING_TAG.format("blockquote"), line)
+                    in_blockquote = True
+                    result.append(line.strip())
+                else:
+                    result.append(line[1:].strip())
+            elif line.startswith(BLOCKQUOTE_EXPANDABLE_DELIM):
+                if not in_blockquote:
+                    line = re.sub(r'^\*\*> ', OPENING_TAG.format("blockquote expandable"), line)
+                    line = re.sub(r'^\*\*>', OPENING_TAG.format("blockquote expandable"), line)
+                    in_blockquote = True
+                    result.append(line.strip())
+                else:
+                    result.append(line[3:].strip())
+            else:
+                if in_blockquote:
+                    line = CLOSING_TAG.format("blockquote") + line
+                    in_blockquote = False
+                result.append(line)
 
-                to_quote_list.append((index, parsed_line))
-                html_escaped_list.append(index)
+        if in_blockquote:
+            line = result[len(result)-1] + CLOSING_TAG.format("blockquote")
+            result.pop(len(result)-1)
+            result.append(line)
 
-            elif len(to_quote_list) > 0:
-                create_blockquote()
-        create_blockquote()
-
-        if strict:
-            for idx, line in enumerate(text_lines):
-                if idx not in html_escaped_list:
-                    text_lines[idx] = html.escape(line)
-
-        return "\n".join([valid_line for valid_line in text_lines if valid_line is not None])
+        return '\n'.join(result)
 
     async def parse(self, text: str, strict: bool = False):
-        text = self.escape_and_create_quotes(text, strict=strict)
+        if strict:
+            text = html.escape(text)
+        text = self.blockquote_parser(text)
+
         delims = set()
         is_fixed_width = False
 
-        for match in re.finditer(MARKDOWN_RE, text):
+        placeholders = {}
+        for i, code_section in enumerate(CODE_TAG_RE.findall(text)):
+            placeholder = f"{{CODE_SECTION_{i}}}"
+            placeholders[placeholder] = code_section
+            text = text.replace(code_section, placeholder, 1)
+
+        for i, match in enumerate(re.finditer(MARKDOWN_RE, text)):
             start, _ = match.span()
-            delim, is_emoji_like, text_url, url = match.groups()
+            delim = match.group(1)
             full = match.group(0)
 
             if delim in FIXED_WIDTH_DELIMS:
                 is_fixed_width = not is_fixed_width
 
             if is_fixed_width and delim not in FIXED_WIDTH_DELIMS:
-                continue
-
-            if not is_emoji_like and text_url:
-                text = utils.replace_once(text, full, URL_MARKUP.format(url, text_url), start)
-                continue
-
-            if is_emoji_like:
-                parsed = urllib.parse.urlparse(url)
-                params = urllib.parse.parse_qs(parsed.query)
-                emoji_date = text_url
-
-                if parsed.netloc == "time":
-                    unix_time = params.get("unix", [""])[0]
-                    date_time_format = params.get("format", [""])[0]
-
-                    if date_time_format:
-                        markup = FORMATTED_DATE_TIME_MARKUP.format(
-                            unix_time, date_time_format, emoji_date
-                        )
-                    else:
-                        markup = DATE_TIME_MARKUP.format(unix_time, emoji_date)
-                    text = utils.replace_once(text, full, markup, start)
-                elif parsed.netloc == "emoji":
-                    emoji_id = params.get("id", [""])[0]
-                    markup = EMOJI_MARKUP.format(emoji_id, emoji_date)
-                    text = utils.replace_once(text, full, markup, start)
-
                 continue
 
             if delim == BOLD_DELIM:
@@ -251,116 +151,139 @@ class Markdown:
                 tag = CLOSING_TAG.format(tag)
 
             if delim == PRE_DELIM and delim in delims:
-                delim_and_language = text[text.find(PRE_DELIM) :].split("\n")[0]
-                language = delim_and_language[len(PRE_DELIM) :]
-                text = utils.replace_once(
-                    text, delim_and_language, f'<pre language="{language}">', start
-                )
+                delim_and_language = text[text.find(PRE_DELIM):].split("\n")[0]
+                language = delim_and_language[len(PRE_DELIM):]
+                text = utils.replace_once(text, delim_and_language, f'<pre language="{language}">', start)
                 continue
 
             text = utils.replace_once(text, delim, tag, start)
 
+        for i, match in enumerate(re.finditer(URL_RE, text)):
+            start, _ = match.span()
+            is_emoji, text_url, url = match.groups()
+            full = match.group(0)
+
+            if not is_emoji and text_url:
+                text = utils.replace_once(text, full, URL_MARKUP.format(url, text_url), start)
+                continue
+
+            if is_emoji:
+                emoji = text_url
+                emoji_id = url.lstrip("tg://emoji?id=")
+                text = utils.replace_once(text, full, EMOJI_MARKUP.format(emoji_id, emoji), start)
+                continue
+
+        for placeholder, code_section in placeholders.items():
+            text = text.replace(placeholder, code_section)
+
         return await self.html.parse(text)
 
     @staticmethod
-    def unparse(text: str, entities: list[types.MessageEntity]):
+    def unparse(text: str, entities: list):
+        """
+        Performs the reverse operation to .parse(), effectively returning
+        markdown-like syntax given a normal text and its MessageEntity's.
+
+        :param text: the text to be reconverted into markdown.
+        :param entities: list of MessageEntity's applied to the text.
+        :return: a markdown-like text representing the combination of both inputs.
+        """
+        delimiters = {
+            MessageEntityType.BOLD: BOLD_DELIM,
+            MessageEntityType.ITALIC: ITALIC_DELIM,
+            MessageEntityType.UNDERLINE: UNDERLINE_DELIM,
+            MessageEntityType.STRIKETHROUGH: STRIKE_DELIM,
+            MessageEntityType.CODE: CODE_DELIM,
+            MessageEntityType.PRE: PRE_DELIM,
+            MessageEntityType.BLOCKQUOTE: BLOCKQUOTE_DELIM,
+            MessageEntityType.EXPANDABLE_BLOCKQUOTE: BLOCKQUOTE_EXPANDABLE_DELIM,
+            MessageEntityType.SPOILER: SPOILER_DELIM
+        }
+
         text = utils.add_surrogates(text)
 
-        entities_offsets = []
-
-        for entity in entities:
-            entity_type = entity.type
-            start = entity.offset
-            end = start + entity.length
-
-            if entity_type == MessageEntityType.BOLD:
-                start_tag = end_tag = BOLD_DELIM
-            elif entity_type == MessageEntityType.ITALIC:
-                start_tag = end_tag = ITALIC_DELIM
-            elif entity_type == MessageEntityType.UNDERLINE:
-                start_tag = end_tag = UNDERLINE_DELIM
-            elif entity_type == MessageEntityType.STRIKETHROUGH:
-                start_tag = end_tag = STRIKE_DELIM
-            elif entity_type == MessageEntityType.CODE:
-                start_tag = end_tag = CODE_DELIM
-            elif entity_type == MessageEntityType.PRE:
-                language = getattr(entity, "language", "") or ""
-                start_tag = f"{PRE_DELIM}{language}\n"
-                end_tag = f"\n{PRE_DELIM}"
-            elif entity_type == MessageEntityType.BLOCKQUOTE:
-                start_tag = BLOCKQUOTE_DELIM + " "
-                end_tag = ""
-                blockquote_text = text[start:end]
-                lines = blockquote_text.split("\n")
-                last_length = 0
-                for line in lines:
-                    if len(line) == 0 and last_length == end:
-                        continue
-                    start_offset = start + last_length
-                    last_length = last_length + len(line)
-                    end_offset = start_offset + last_length
-                    entities_offsets.append(
-                        (
-                            start_tag,
-                            start_offset,
-                        )
+        insert_at = []
+        for i, entity in enumerate(entities):
+            s = entity.offset
+            e = entity.offset + entity.length
+            delimiter = delimiters.get(entity.type, None)
+            if delimiter:
+                if entity.type == MessageEntityType.PRE:
+                    inside_blockquote = any(
+                        blk_entity.offset <= s < blk_entity.offset + blk_entity.length and
+                        blk_entity.offset < e <= blk_entity.offset + blk_entity.length
+                        for blk_entity in entities
+                        if blk_entity.type == MessageEntityType.BLOCKQUOTE
                     )
-                    entities_offsets.append(
-                        (
-                            end_tag,
-                            end_offset,
-                        )
+                    is_expandable = any(
+                        blk_entity.offset <= s < blk_entity.offset + blk_entity.length and
+                        blk_entity.offset < e <= blk_entity.offset + blk_entity.length and
+                        blk_entity.collapsed
+                        for blk_entity in entities
+                        if blk_entity.type == MessageEntityType.BLOCKQUOTE
                     )
-                    last_length = last_length + 1
-                continue
-            elif entity_type == MessageEntityType.SPOILER:
-                start_tag = end_tag = SPOILER_DELIM
-            elif entity_type == MessageEntityType.TEXT_LINK:
-                url = entity.url
-                start_tag = "["
-                end_tag = f"]({url})"
-            elif entity_type == MessageEntityType.TEXT_MENTION:
-                user = entity.user
-                start_tag = "["
-                end_tag = f"](tg://user?id={user.id})"
-            elif entity_type == MessageEntityType.CUSTOM_EMOJI:
-                emoji_id = entity.custom_emoji_id
-                start_tag = "!["
-                end_tag = f"](tg://emoji?id={emoji_id})"
-            elif entity_type == MessageEntityType.DATE_TIME:
-                unix_time = entity.unix_time
-                date_time_format = entity.date_time_format
-                start_tag = "!["
-                if date_time_format:
-                    end_tag = f"](tg://time?unix={unix_time}&format={date_time_format})"
+                    if inside_blockquote:
+                        if is_expandable:
+                            if entity.language:
+                                open_delimiter = f"{delimiter}{entity.language}\n**>"
+                            else:
+                                open_delimiter = f"{delimiter}\n**>"
+                            close_delimiter = f"\n**>{delimiter}"
+                        else:
+                            if entity.language:
+                                open_delimiter = f"{delimiter}{entity.language}\n>"
+                            else:
+                                open_delimiter = f"{delimiter}\n>"
+                            close_delimiter = f"\n>{delimiter}"
+                    else:
+                        open_delimiter = delimiter
+                        close_delimiter = delimiter
+                    insert_at.append((s, i, open_delimiter))
+                    insert_at.append((e, -i, close_delimiter))
+                elif entity.type != MessageEntityType.BLOCKQUOTE and entity.type != MessageEntityType.EXPANDABLE_BLOCKQUOTE:
+                    open_delimiter = delimiter
+                    close_delimiter = delimiter
+                    insert_at.append((s, i, open_delimiter))
+                    insert_at.append((e, -i, close_delimiter))
                 else:
-                    end_tag = f"](tg://time?unix={unix_time})"
+                    # Handle multiline blockquotes
+                    text_subset = text[s:e]
+                    lines = text_subset.splitlines()
+                    for line_num, _ in enumerate(lines):
+                        line_start = s + sum(len(l) + 1 for l in lines[:line_num])
+                        if entity.collapsed:
+                            insert_at.append((line_start, i, BLOCKQUOTE_EXPANDABLE_DELIM))
+                        else:
+                            insert_at.append((line_start, i, BLOCKQUOTE_DELIM))
+                    # No closing delimiter for blockquotes
             else:
-                continue
+                url = None
+                is_emoji = False
+                if entity.type == MessageEntityType.TEXT_LINK:
+                    url = entity.url
+                elif entity.type == MessageEntityType.TEXT_MENTION:
+                    url = f'tg://user?id={entity.user.id}'
+                elif entity.type == MessageEntityType.CUSTOM_EMOJI:
+                    url = f"tg://emoji?id={entity.custom_emoji_id}"
+                    is_emoji = True
+                if url:
+                    if is_emoji:
+                        insert_at.append((s, i, '!['))
+                    else:
+                        insert_at.append((s, i, '['))
+                    insert_at.append((e, -i, f']({url})'))
 
-            entities_offsets.append(
-                (
-                    start_tag,
-                    start,
-                )
-            )
-            entities_offsets.append(
-                (
-                    end_tag,
-                    end,
-                )
-            )
+        insert_at.sort(key=lambda t: (t[0], t[1]))
+        while insert_at:
+            at, _, what = insert_at.pop()
 
-        entities_offsets = (
-            entity_and_offset
-            for _, entity_and_offset in sorted(
-                enumerate(entities_offsets),
-                key=lambda indexed: (indexed[1][1], indexed[0]),
-                reverse=True,
-            )
-        )
+            # If we are in the middle of a surrogate nudge the position by -1.
+            # Otherwise we would end up with malformed text and fail to encode.
+            # For example of bad input: "Hi \ud83d\ude1c"
+            # https://en.wikipedia.org/wiki/UTF-16#U+010000_to_U+10FFFF
+            while utils.within_surrogate(text, at):
+                at += 1
 
-        for entity, offset in entities_offsets:
-            text = text[:offset] + entity + text[offset:]
+            text = text[:at] + what + text[at:]
 
         return utils.remove_surrogates(text)

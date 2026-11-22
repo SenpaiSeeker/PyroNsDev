@@ -1,24 +1,23 @@
-#  Kurigram - Telegram MTProto API Client Library for Python
-#
+#  Pyrogram - Telegram MTProto API Client Library for Python
 #  Copyright (C) 2017-present Dan <https://github.com/delivrance>
-#  Copyright (C) 2024-present KurimuzonAkuma <https://github.com/KurimuzonAkuma>
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
-#  This file is part of Kurigram.
+#  This file is part of Pyrogram.
 #
-#  Kurigram is free software: you can redistribute it and/or modify
+#  Pyrogram is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published
 #  by the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Kurigram is distributed in the hope that it will be useful,
+#  Pyrogram is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU Lesser General Public License for more details.
 #
 #  You should have received a copy of the GNU Lesser General Public License
-#  along with Kurigram. If not, see <https://www.gnu.org/licenses/>.
+#  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Dict, Optional
 
 import pyrogram
 from pyrogram import enums, raw, types, utils
@@ -40,9 +39,6 @@ class ExternalReplyInfo(Object):
         message_id  (``int``, *optional*):
             Unique message identifier inside the original chat.
             Available only if the original chat is a supergroup or a channel.
-
-        link_preview_options (:obj:`~pyrogram.types.LinkPreviewOptions`, *optional*):
-            Options used for link preview generation for the original message, if it is a text message.
 
         media (:obj:`~pyrogram.enums.MessageMediaType`, *optional*):
             The message is a media message.
@@ -79,14 +75,8 @@ class ExternalReplyInfo(Object):
         voice (:obj:`~pyrogram.types.Voice`, *optional*):
             Message is a voice message, information about the file.
 
-        widget (:obj:`~pyrogram.types.Widget`, *optional*):
-            Message is an HTML widget, information about the widget.
-
         has_media_spoiler (``bool``, *optional*):
             True, if the message media is covered by a spoiler animation.
-
-        checklist (:obj:`~pyrogram.types.Checklist`, *optional*):
-            Message is a checklist.
 
         contact (:obj:`~pyrogram.types.Contact`, *optional*):
             Message is a shared contact, information about the contact.
@@ -100,8 +90,8 @@ class ExternalReplyInfo(Object):
         giveaway (:obj:`~pyrogram.types.Giveaway`, *optional*):
             Message is a scheduled giveaway, information about the giveaway.
 
-        giveaway_winners (:obj:`~pyrogram.types.GiveawayWinners`, *optional*):
-            A giveaway with public winners was completed
+        giveaway_result (:obj:`~pyrogram.types.GiveawayResult`, *optional*):
+            Message is a giveaway result, information about the giveaway result.
 
         invoice (:obj:`~pyrogram.types.Invoice`, *optional*):
             Message is a invoice, information about the invoice.
@@ -120,41 +110,37 @@ class ExternalReplyInfo(Object):
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
-        origin: types.MessageOrigin | None = None,
-        chat: types.Chat | None = None,
+        client: "pyrogram.Client" = None,
+        origin: "types.MessageOrigin" = None,
+        chat: "types.Chat" = None,
         message_id: int,
-        link_preview_options: types.LinkPreviewOptions | None = None,
-        media: enums.MessageMediaType | None = None,
-        animation: types.Animation | None = None,
-        audio: types.Audio | None = None,
-        document: types.Document | None = None,
-        paid_media: types.PaidMediaInfo | None = None,
-        photo: types.Photo | None = None,
-        sticker: types.Sticker | None = None,
-        story: types.Story | None = None,
-        video: types.Video | None = None,
-        video_note: types.VideoNote | None = None,
-        voice: types.Voice | None = None,
-        widget: types.Widget | None = None,
-        has_media_spoiler: bool | None = None,
-        checklist: types.Checklist | None = None,
-        contact: types.Contact | None = None,
-        dice: types.Dice | None = None,
-        game: types.Game | None = None,
-        giveaway: types.Giveaway | None = None,
-        giveaway_winners: types.GiveawayWinners | None = None,
-        invoice: types.Invoice | None = None,
-        location: types.Location | None = None,
-        poll: types.Poll | None = None,
-        venue: types.Venue | None = None,
+        media: Optional["enums.MessageMediaType"] = None,
+        animation: Optional["types.Animation"] = None,
+        audio: Optional["types.Audio"] = None,
+        document: Optional["types.Document"] = None,
+        paid_media: Optional["types.PaidMediaInfo"] = None,
+        photo: Optional["types.Photo"] = None,
+        sticker: Optional["types.Sticker"] = None,
+        story: Optional["types.Story"] = None,
+        video: Optional["types.Video"] = None,
+        video_note: Optional["types.VideoNote"] = None,
+        voice: Optional["types.Voice"] = None,
+        has_media_spoiler: Optional[bool] = None,
+        contact: Optional["types.Contact"] = None,
+        dice: Optional["types.Dice"] = None,
+        game: Optional["types.Game"] = None,
+        giveaway: Optional["types.Giveaway"] = None,
+        giveaway_result: Optional["types.GiveawayResult"] = None,
+        invoice: Optional["types.Invoice"] = None,
+        location: Optional["types.Location"] = None,
+        poll: Optional["types.Poll"] = None,
+        venue: Optional["types.Venue"] = None,
     ):
         super().__init__(client)
 
         self.origin = origin
         self.chat = chat
         self.message_id = message_id
-        self.link_preview_options = link_preview_options
         self.media = media
         self.animation = animation
         self.audio = audio
@@ -166,14 +152,12 @@ class ExternalReplyInfo(Object):
         self.video = video
         self.video_note = video_note
         self.voice = voice
-        self.widget = widget
         self.has_media_spoiler = has_media_spoiler
-        self.checklist = checklist
         self.contact = contact
         self.dice = dice
         self.game = game
         self.giveaway = giveaway
-        self.giveaway_winners = giveaway_winners
+        self.giveaway_result = giveaway_result
         self.invoice = invoice
         self.location = location
         self.poll = poll
@@ -182,10 +166,10 @@ class ExternalReplyInfo(Object):
     @staticmethod
     async def _parse(
         client,
-        reply: raw.types.MessageReplyHeader,
-        users: dict[int, raw.types.User],
-        chats: dict[int, raw.types.Chat],
-    ) -> ExternalReplyInfo | None:
+        reply: "raw.types.MessageReplyHeader",
+        users: Dict[int, "raw.types.User"],
+        chats: Dict[int, "raw.types.Chat"],
+    ) -> Optional["ExternalReplyInfo"]:
         if not isinstance(reply, raw.types.MessageReplyHeader):
             return None
 
@@ -201,15 +185,12 @@ class ExternalReplyInfo(Object):
         story = None
         video = None
         video_note = None
-        has_media_spoiler = None
         voice = None
-        widget = None
-        checklist = None
         contact = None
         dice = None
         game = None
         giveaway = None
-        giveaway_winners = None
+        giveaway_result = None
         invoice = None
         location = None
         poll = None
@@ -217,6 +198,7 @@ class ExternalReplyInfo(Object):
 
         media = reply.reply_media
         media_type = None
+        has_media_spoiler = None
 
         if media:
             if isinstance(media, raw.types.MessageMediaPhoto):
@@ -224,7 +206,7 @@ class ExternalReplyInfo(Object):
                 media_type = enums.MessageMediaType.PHOTO
                 has_media_spoiler = media.spoiler
             elif isinstance(media, raw.types.MessageMediaGeo):
-                location = types.Location._parse(media.geo)
+                location = types.Location._parse(client, media.geo)
                 media_type = enums.MessageMediaType.LOCATION
             elif isinstance(media, raw.types.MessageMediaContact):
                 contact = types.Contact._parse(client, media)
@@ -236,16 +218,16 @@ class ExternalReplyInfo(Object):
                 game = types.Game._parse(client, media)
                 media_type = enums.MessageMediaType.GAME
             elif isinstance(media, raw.types.MessageMediaGiveaway):
-                giveaway = await types.Giveaway._parse(client, media, chats)
+                giveaway = types.Giveaway._parse(client, reply, chats)
                 media_type = enums.MessageMediaType.GIVEAWAY
             elif isinstance(media, raw.types.MessageMediaGiveawayResults):
-                giveaway_winners = await types.GiveawayWinners._parse(client, media, users, chats)
-                media_type = enums.MessageMediaType.GIVEAWAY_WINNERS
+                giveaway_result = await types.GiveawayResult._parse(client, media, users, chats)
+                media_type = enums.MessageMediaType.GIVEAWAY_RESULT
             elif isinstance(media, raw.types.MessageMediaInvoice):
-                invoice = types.Invoice._parse(client, media)
+                invoice = types.Invoice._parse(media)
                 media_type = enums.MessageMediaType.INVOICE
             elif isinstance(media, raw.types.MessageMediaStory):
-                story = await types.Story._parse(client, media, media.peer, users, chats)
+                story = await types.Story._parse(client, media, media.peer)
                 media_type = enums.MessageMediaType.STORY
             elif isinstance(media, raw.types.MessageMediaDocument):
                 doc = media.document
@@ -254,7 +236,9 @@ class ExternalReplyInfo(Object):
                     attributes = {type(i): i for i in doc.attributes}
 
                     file_name = getattr(
-                        attributes.get(raw.types.DocumentAttributeFilename, None), "file_name", None
+                        attributes.get(
+                            raw.types.DocumentAttributeFilename, None
+                        ), "file_name", None
                     )
 
                     if raw.types.DocumentAttributeAnimated in attributes:
@@ -269,9 +253,7 @@ class ExternalReplyInfo(Object):
                         video_attributes = attributes[raw.types.DocumentAttributeVideo]
 
                         if video_attributes.round_message:
-                            video_note = types.VideoNote._parse(
-                                client, doc, video_attributes, media.ttl_seconds
-                            )
+                            video_note = types.VideoNote._parse(client, doc, video_attributes)
                             media_type = enums.MessageMediaType.VIDEO_NOTE
                         else:
                             video = types.Video._parse(
@@ -281,8 +263,7 @@ class ExternalReplyInfo(Object):
                                 file_name,
                                 media.ttl_seconds,
                                 media.video_cover,
-                                media.video_timestamp,
-                                media.alt_documents,
+                                media.video_timestamp
                             )
                             media_type = enums.MessageMediaType.VIDEO
                             has_media_spoiler = media.spoiler
@@ -290,9 +271,7 @@ class ExternalReplyInfo(Object):
                         audio_attributes = attributes[raw.types.DocumentAttributeAudio]
 
                         if audio_attributes.voice:
-                            voice = types.Voice._parse(
-                                client, doc, audio_attributes, media.ttl_seconds
-                            )
+                            voice = types.Voice._parse(client, doc, audio_attributes)
                             media_type = enums.MessageMediaType.VOICE
                         else:
                             audio = types.Audio._parse(client, doc, audio_attributes, file_name)
@@ -301,36 +280,29 @@ class ExternalReplyInfo(Object):
                         document = types.Document._parse(client, doc, file_name)
                         media_type = enums.MessageMediaType.DOCUMENT
             elif isinstance(media, raw.types.MessageMediaPoll):
-                poll = await types.Poll._parse(client, media, None, users=users, chats=chats)
+                poll = types.Poll._parse(client, media, users)
                 media_type = enums.MessageMediaType.POLL
             elif isinstance(media, raw.types.MessageMediaDice):
                 dice = types.Dice._parse(client, media)
                 media_type = enums.MessageMediaType.DICE
             elif isinstance(media, raw.types.MessageMediaPaidMedia):
-                paid_media = types.PaidMediaInfo._parse(client, media)
+                paid_media = types.PaidMedia._parse(client, media)
                 media_type = enums.MessageMediaType.PAID_MEDIA
-            elif isinstance(media, raw.types.MessageMediaWidget):
-                widget = types.Widget._parse(media)
-                media_type = enums.MessageMediaType.WIDGET
-            elif isinstance(media, raw.types.MessageMediaToDo):
-                checklist = await types.Checklist._parse(client, media, users, chats)
-                media_type = enums.MessageMediaType.CHECKLIST
             else:
                 media = None
 
         return ExternalReplyInfo(
-            origin=await types.MessageOrigin._parse(
+            origin=types.MessageOrigin._parse(
                 client,
                 reply.reply_from,
                 users,
                 chats,
             ),
-            chat=await types.Chat._parse_chat(
+            chat=types.Chat._parse_chat(
                 client,
                 chats.get(utils.get_raw_peer_id(reply.reply_to_peer_id)),
             ),
             message_id=reply.reply_to_msg_id,
-            link_preview_options=types.LinkPreviewOptions._parse(reply.reply_media),
             media=media_type,
             animation=animation,
             audio=audio,
@@ -342,16 +314,14 @@ class ExternalReplyInfo(Object):
             video=video,
             video_note=video_note,
             voice=voice,
-            widget=widget,
             has_media_spoiler=has_media_spoiler,
             contact=contact,
             dice=dice,
             game=game,
             giveaway=giveaway,
-            giveaway_winners=giveaway_winners,
+            giveaway_result=giveaway_result,
             invoice=invoice,
             location=location,
             poll=poll,
-            venue=venue,
-            checklist=checklist,
+            venue=venue
         )

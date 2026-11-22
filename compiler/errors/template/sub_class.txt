@@ -1,7 +1,7 @@
-class {sub_class}({bases}):
+class {sub_class}({super_class}):
     {docstring}
     ID = {id}
-    """``str``: RPC Error ID"""{code_and_name}
-    MESSAGE = __doc__{value_property}
+    """``str``: RPC Error ID"""
+    MESSAGE = __doc__
 
 

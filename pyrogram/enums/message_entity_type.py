@@ -1,22 +1,21 @@
-#  Kurigram - Telegram MTProto API Client Library for Python
-#
+#  Pyrofork - Telegram MTProto API Client Library for Python
 #  Copyright (C) 2017-present Dan <https://github.com/delivrance>
-#  Copyright (C) 2024-present KurimuzonAkuma <https://github.com/KurimuzonAkuma>
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
-#  This file is part of Kurigram.
+#  This file is part of Pyrofork.
 #
-#  Kurigram is free software: you can redistribute it and/or modify
+#  Pyrofork is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published
 #  by the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Kurigram is distributed in the hope that it will be useful,
+#  Pyrofork is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU Lesser General Public License for more details.
 #
 #  You should have received a copy of the GNU Lesser General Public License
-#  along with Kurigram. If not, see <https://www.gnu.org/licenses/>.
+#  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
 from pyrogram import raw
 from .auto_name import AutoName
@@ -29,10 +28,10 @@ class MessageEntityType(AutoName):
     "``@username``"
 
     HASHTAG = raw.types.MessageEntityHashtag
-    "``#hashtag`` or ``#hashtag@username``"
+    "``#hashtag``"
 
     CASHTAG = raw.types.MessageEntityCashtag
-    "``$USD`` or ``$USD@username``"
+    "``$USD``"
 
     BOT_COMMAND = raw.types.MessageEntityBotCommand
     "``/start@pyrogrambot``"
@@ -70,23 +69,20 @@ class MessageEntityType(AutoName):
     BLOCKQUOTE = raw.types.MessageEntityBlockquote
     "Blockquote text"
 
+    EXPANDABLE_BLOCKQUOTE = raw.types.MessageEntityBlockquote
+    "collapsed-by-default block quotation"
+
     TEXT_LINK = raw.types.MessageEntityTextUrl
     "For clickable text URLs"
 
     TEXT_MENTION = raw.types.MessageEntityMentionName
     "for users without usernames (see ``user``)"
 
-    BANK_CARD_NUMBER = raw.types.MessageEntityBankCard
-    "Bank card number"
+    BANK_CARD = raw.types.MessageEntityBankCard
+    "Bank card text"
 
     CUSTOM_EMOJI = raw.types.MessageEntityCustomEmoji
     "Custom emoji"
-
-    DATE_TIME = raw.types.MessageEntityFormattedDate
-    "Date time"
-
-    TON_ADDRESS = raw.types.MessageEntityTonAddress
-    "An address in the TON blockchain"
 
     UNKNOWN = raw.types.MessageEntityUnknown
     "Unknown message entity type"

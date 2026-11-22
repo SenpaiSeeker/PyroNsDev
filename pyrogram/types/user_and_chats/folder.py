@@ -16,175 +16,125 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import List, Union
 
 import pyrogram
-from pyrogram import enums, raw, types, utils
-
+from pyrogram import raw
+from pyrogram import types
 from ..object import Object
+from ... import utils
 
 
 class Folder(Object):
-    """Represents a folder for user chats.
+    """A user's folder.
 
     Parameters:
-        id (``int``, *optional*):
-            Unique chat folder identifier.
+        id (``int``):
+            The folder id.
 
-        name (``str``, *optional*):
-            The text of the chat folder name, 1-12 characters without line feeds.
+        title (``str``):
+            The folder title.
 
-        entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
-            Special entities like bold, italic, etc. that appear in the folder name.
+        pinned_peers (List of :obj:`~pyrogram.types.Chat`):
+            A list of pinned chats in folder.
 
-        animate_custom_emoji (``bool``, *optional*):
-            True, if custom emoji in the name must be animated.
+        included_peers (List of :obj:`~pyrogram.types.Chat`):
+            A list of included chats in folder.
 
-        icon (``str``, *optional*):
-            The chosen icon for the chat folder.
+        excluded_peers (List of :obj:`~pyrogram.types.Chat`, *optional*):
+            A list of excluded chats in folder.
 
-        color (:obj:`~pyrogram.enums.FolderColor`, *optional*):
-            The identifier of the chosen color for the chat folder icon.
-            Can't be changed if folder tags are disabled or the current user doesn't have Telegram Premium subscription.
+        contacts (``bool``, *optional*):
+            True, if the folder includes contacts.
 
-        is_shareable (``bool``, *optional*):
-            True, if at least one link has been created for the folder.
+        non_contacts (``bool``, *optional*):
+            True, if the folder includes non contacts.
 
-        pinned_chats (List of :obj:`~pyrogram.types.Chat`, *optional*):
-            The pinned chats in the folder.
-            There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
+        groups (``bool``, *optional*):
+            True, if the folder includes groups.
 
-        included_chats (List of :obj:`~pyrogram.types.Chat`, *optional*):
-            The always included chats in the folder.
-            There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
+        broadcasts (``bool``, *optional*):
+            True, if the folder includes broadcasts.
 
-        excluded_chats (List of :obj:`~pyrogram.types.Chat`, *optional*):
-            The always excluded chats in the folder.
-            There can be up to getOption("chat_folder_chosen_chat_count_max") always excluded non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
+        bots (``bool``, *optional*):
+            True, if the folder includes bots.
 
         exclude_muted (``bool``, *optional*):
-            True, if muted chats need to be excluded.
+            True, if the folder exclude muted.
 
         exclude_read (``bool``, *optional*):
-            True, if read chats need to be excluded.
+            True, if the folder exclude read.
 
         exclude_archived (``bool``, *optional*):
-            True, if archived chats need to be excluded.
+            True, if the folder exclude archived.
 
-        include_contacts (``bool``, *optional*):
-            True, if contacts need to be included.
-
-        include_non_contacts (``bool``, *optional*):
-            True, if non-contact users need to be included.
-
-        include_bots (``bool``, *optional*):
-            True, if bots need to be included.
-
-        include_groups (``bool``, *optional*):
-            True, if basic groups and supergroups need to be included.
-
-        include_channels (``bool``, *optional*):
-            True, if channels need to be included.
-
-        raw (``raw.base.DialogFilter``, *optional*):
-            The raw chat folder object.
+        emoji (``str``, *optional*):
+            Folder emoji.
     """
 
     def __init__(
         self,
         *,
-        client: pyrogram.Client | None = None,
-        id: int | None = None,
-        name: str | None = None,
-        entities: list[types.MessageEntity] | None = None,
-        animate_custom_emoji: bool | None = None,
-        icon: str | None = None,
-        color: enums.FolderColor | None = None,
-        is_shareable: bool | None = None,
-        pinned_chats: list[types.Chat] | None = None,
-        included_chats: list[types.Chat] | None = None,
-        excluded_chats: list[types.Chat] | None = None,
-        exclude_muted: bool | None = None,
-        exclude_read: bool | None = None,
-        exclude_archived: bool | None = None,
-        include_contacts: bool | None = None,
-        include_non_contacts: bool | None = None,
-        include_bots: bool | None = None,
-        include_groups: bool | None = None,
-        include_channels: bool | None = None,
-        raw: raw.base.DialogFilter | None = None,
+        client: "pyrogram.Client" = None,
+        id: int,
+        title: str,
+        pinned_peers: List["types.Chat"] = None,
+        included_peers: List["types.Chat"] = None,
+        excluded_peers: List["types.Chat"] = None,
+        contacts: bool = None,
+        non_contacts: bool = None,
+        groups: bool = None,
+        broadcasts: bool = None,
+        bots: bool = None,
+        exclude_muted: bool = None,
+        exclude_read: bool = None,
+        exclude_archived: bool = None,
+        emoji: str = None,
+        has_my_invites: bool = None
     ):
         super().__init__(client)
 
         self.id = id
-        self.name = name
-        self.entities = entities
-        self.animate_custom_emoji = animate_custom_emoji
-        self.icon = icon
-        self.color = color
-        self.is_shareable = is_shareable
-        self.pinned_chats = pinned_chats
-        self.included_chats = included_chats
-        self.excluded_chats = excluded_chats
+        self.title = title
+        self.pinned_peers = pinned_peers
+        self.included_peers = included_peers
+        self.excluded_peers = excluded_peers
+        self.contacts = contacts
+        self.non_contacts = non_contacts
+        self.groups = groups
+        self.broadcasts = broadcasts
+        self.bots = bots
         self.exclude_muted = exclude_muted
         self.exclude_read = exclude_read
         self.exclude_archived = exclude_archived
-        self.include_contacts = include_contacts
-        self.include_non_contacts = include_non_contacts
-        self.include_bots = include_bots
-        self.include_groups = include_groups
-        self.include_channels = include_channels
-        self.raw = raw
+        self.emoji = emoji
+        self.has_my_invites = has_my_invites
+
 
     @staticmethod
-    async def _parse(
-        client: pyrogram.Client, folder: raw.base.DialogFilter, users, chats
-    ) -> Folder | None:
-        if not folder:
-            return
-
-        if isinstance(folder, raw.types.DialogFilterDefault):
-            return
-
-        pinned_chats = types.List()
-        included_chats = types.List()
-        excluded_chats = types.List()
-
-        for peer in folder.pinned_peers:
-            pinned_chats.append(await types.Chat._parse_dialog(client, peer, users, chats))
-
-        for peer in folder.include_peers:
-            included_chats.append(await types.Chat._parse_dialog(client, peer, users, chats))
-
-        for peer in getattr(folder, "exclude_peers", []):
-            excluded_chats.append(await types.Chat._parse_dialog(client, peer, users, chats))
-
-        name, entities = (await utils.parse_text_with_entities(client, folder.title, {})).values()
+    def _parse(client, folder: "raw.types.DialogFilter", peers) -> "Folder":
+        # TODO: Change types.Chat._parse to types.Dialog._parse
 
         return Folder(
             id=folder.id,
-            name=name,
-            entities=entities,
-            animate_custom_emoji=not folder.title_noanimate,
-            icon=folder.emoticon or None,
-            color=enums.FolderColor(folder.color),
-            is_shareable=isinstance(folder, raw.types.DialogFilterChatlist),
-            pinned_chats=pinned_chats or None,
-            included_chats=included_chats or None,
-            excluded_chats=excluded_chats or None,
+            title=folder.title,
+            pinned_peers=types.List(types.Chat._parse_chat(client, peers.get(utils.get_input_peer_id(i), None)) for i in folder.pinned_peers) or None,
+            included_peers=types.List(types.Chat._parse_chat(client, peers.get(utils.get_input_peer_id(i), None)) for i in folder.include_peers) or None,
+            excluded_peers=types.List(types.Chat._parse_chat(client, peers.get(utils.get_input_peer_id(i), None)) for i in folder.exclude_peers) or None if getattr(folder, "exclude_peers", None) else None,
+            contacts=getattr(folder, "contacts", None),
+            non_contacts=getattr(folder, "non_contacts", None),
+            groups=getattr(folder, "groups", None),
+            broadcasts=getattr(folder, "broadcasts", None),
+            bots=getattr(folder, "bots", None),
             exclude_muted=getattr(folder, "exclude_muted", None),
             exclude_read=getattr(folder, "exclude_read", None),
             exclude_archived=getattr(folder, "exclude_archived", None),
-            include_contacts=getattr(folder, "contacts", None),
-            include_non_contacts=getattr(folder, "non_contacts", None),
-            include_bots=getattr(folder, "bots", None),
-            include_groups=getattr(folder, "groups", None),
-            include_channels=getattr(folder, "broadcasts", None),
-            raw=folder,
-            client=client,
+            emoji=folder.emoticon or None,
+            has_my_invites=getattr(folder, "has_my_invites", None),
+            client=client
         )
 
-    async def delete(self) -> bool:
+    async def delete(self):
         """Bound method *delete* of :obj:`~pyrogram.types.Folder`.
 
         Use as a shortcut for:
@@ -201,311 +151,134 @@ class Folder(Object):
         Returns:
             True on success.
         """
+
         return await self._client.delete_folder(self.id)
 
-    async def edit(
-        self,
-        name: str | None = None,
-        parse_mode: enums.ParseMode | None = None,
-        entities: list[types.MessageEntity] | None = None,
-        animate_custom_emoji: bool | None = None,
-        icon: str | None = None,
-        color: enums.FolderColor | None = None,
-        pinned_chats: list[int | str] | None = None,
-        included_chats: list[int | str] | None = None,
-        excluded_chats: list[int | str] | None = None,
-        exclude_muted: bool | None = None,
-        exclude_read: bool | None = None,
-        exclude_archived: bool | None = None,
-        include_contacts: bool | None = None,
-        include_non_contacts: bool | None = None,
-        include_bots: bool | None = None,
-        include_groups: bool | None = None,
-        include_channels: bool | None = None,
-    ) -> bool:
+    async def update_peers(self, pinned_peers: List[Union[int, str]], included_peers: List[Union[int, str]], excluded_peers: List[Union[int, str]]):
         """Bound method *update_peers* of :obj:`~pyrogram.types.Folder`.
 
         Use as a shortcut for:
 
         .. code-block:: python
 
-            await client.edit_folder(
-                folder_id,
-                name="New folder",
-                included_chats=["me"]
-            )
+            await client.update_folder(123456789, ...)
 
         Example:
             .. code-block:: python
 
-               await folder.update(included_chats=["me"])
-
-        Parameters:
-            name (``str``, *optional*):
-                The text of the chat folder name, 1-12 characters without line feeds.
-
-            entities (List of :obj:`~pyrogram.types.MessageEntity`, *optional*):
-                Special entities like bold, italic, etc. that appear in the folder name.
-
-            parse_mode (:obj:`~pyrogram.enums.ParseMode`, *optional*):
-                By default, texts are parsed using both Markdown and HTML styles.
-                You can combine both syntaxes together.
-
-            animate_custom_emoji (``bool``, *optional*):
-                True, if custom emoji in the name must be animated.
-
-            icon (``str``, *optional*):
-                The chosen icon for the chat folder.
-
-            color (:obj:`~pyrogram.enums.FolderColor`, *optional*):
-                The identifier of the chosen color for the chat folder icon.
-                Can't be changed if folder tags are disabled or the current user doesn't have Telegram Premium subscription.
-
-            pinned_chats (List of ``int`` | ``str``, *optional*):
-                The pinned chats in the folder.
-                There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
-
-            included_chats (List of ``int`` | ``str``, *optional*):
-                The always included chats in the folder.
-                There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
-
-            excluded_chats (List of ``int`` | ``str``, *optional*):
-                The always excluded chats in the folder.
-                There can be up to getOption("chat_folder_chosen_chat_count_max") always excluded non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium.
-
-            exclude_muted (``bool``, *optional*):
-                True, if muted chats need to be excluded.
-
-            exclude_read (``bool``, *optional*):
-                True, if read chats need to be excluded.
-
-            exclude_archived (``bool``, *optional*):
-                True, if archived chats need to be excluded.
-
-            include_contacts (``bool``, *optional*):
-                True, if contacts need to be included.
-
-            include_non_contacts (``bool``, *optional*):
-                True, if non-contact users need to be included.
-
-            include_bots (``bool``, *optional*):
-                True, if bots need to be included.
-
-            include_groups (``bool``, *optional*):
-                True, if basic groups and supergroups need to be included.
-
-            include_channels (``bool``, *optional*):
-                True, if channels need to be included.
+               await folder.update_peers(...)
 
         Returns:
             True on success.
         """
-        if name:
-            name, entities = (
-                await utils.parse_text_entities(self, name, parse_mode, entities)
-            ).values()
-            entities = entities or []
 
-        return await self._client.edit_folder(
+        return await self._client.update_folder(
             folder_id=self.id,
-            name=name or self.name,
-            parse_mode=parse_mode,
-            entities=entities or self.entities,
-            animate_custom_emoji=animate_custom_emoji or self.animate_custom_emoji,
-            icon=icon or self.icon,
-            color=color or self.color,
-            pinned_chats=[i.id for i in self.included_chats or []]
-            if pinned_chats is None
-            else pinned_chats,
-            included_chats=[i.id for i in self.included_chats or []]
-            if included_chats is None
-            else included_chats,
-            excluded_chats=[i.id for i in self.excluded_chats or []]
-            if excluded_chats is None
-            else excluded_chats,
-            exclude_muted=exclude_muted or self.exclude_muted,
-            exclude_read=exclude_read or self.exclude_read,
-            exclude_archived=exclude_archived or self.exclude_archived,
-            include_contacts=include_contacts or self.include_contacts,
-            include_non_contacts=include_non_contacts or self.include_non_contacts,
-            include_bots=include_bots or self.include_bots,
-            include_groups=include_groups or self.include_groups,
-            include_channels=include_channels or self.include_channels,
+            title=self.title,
+            pinned_peers=pinned_peers,
+            included_peers=included_peers,
+            excluded_peers=excluded_peers,
+            contacts=self.contacts,
+            non_contacts=self.non_contacts,
+            groups=self.groups,
+            broadcasts=self.broadcasts,
+            bots=self.bots,
+            exclude_muted=self.exclude_muted,
+            exclude_read=self.exclude_read,
+            exclude_archived=self.exclude_archived,
+            emoji=self.emoji
         )
 
-    async def include_chat(self, chat_id: int | str) -> bool:
-        """Bound method *include_chat* of :obj:`~pyrogram.types.Folder`.
-
-        Always include a chat in the folder.
-
-        Use as a shortcut for:
-
-        .. code-block:: python
-
-            await client.edit_folder(
-                folder_id=folder_id,
-                included_chats=[chat_id]
-            )
-
-        Example:
-            .. code-block:: python
-
-               await folder.include_chat(chat_id)
-
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-
-        Returns:
-            True on success.
-        """
-        return await self.edit(
-            included_chats=[i.id for i in self.included_chats or []] + [chat_id],
-        )
-
-    async def exclude_chat(self, chat_id: int | str) -> bool:
-        """Bound method *exclude_chat* of :obj:`~pyrogram.types.Folder`.
-
-        Always exclude a chat from the folder.
-
-        Use as a shortcut for:
-
-        .. code-block:: python
-
-            await client.edit_folder(
-                folder_id=folder_id,
-                excluded_chats=[chat_id],
-            )
-
-        Example:
-            .. code-block:: python
-
-               await folder.exclude_chat(chat_id)
-
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-
-        Returns:
-            True on success.
-        """
-        return await self.edit(
-            excluded_chats=[i.id for i in self.excluded_chats or []] + [chat_id],
-        )
-
-    async def pin_chat(self, chat_id: int | str) -> bool:
+    async def pin_chat(self, chat_id: Union[int, str]):
         """Bound method *pin_chat* of :obj:`~pyrogram.types.Folder`.
 
         Use as a shortcut for:
 
         .. code-block:: python
 
-            await client.edit_folder(
-                folder_id=folder_id,
-                included_chats=[chat_id],
-                pinned_chats=[chat_id]
-            )
+            await client.update_folder(123456789, ...)
 
         Example:
             .. code-block:: python
 
                await folder.pin_chat(chat_id)
 
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-
         Returns:
             True on success.
         """
-        return await self.edit(
-            included_chats=[i.id for i in self.included_chats or []] + [chat_id],
-            pinned_chats=[i.id for i in self.pinned_chats or []] + [chat_id],
+
+        return await self.update_peers(
+            pinned_peers=[i.id for i in self.pinned_peers] if self.pinned_peers else [] + [chat_id],
+            included_peers=[i.id for i in self.included_peers] if self.included_peers else [] + [chat_id],
+            excluded_peers=[i.id for i in self.excluded_peers] if self.excluded_peers else [],
         )
 
-    async def remove_chat(self, chat_id: int | str) -> bool:
-        """Bound method *remove_chat* of :obj:`~pyrogram.types.Folder`.
-
-        Remove chat in folder from included/excluded/pinned chats.
-
-        Example:
-            .. code-block:: python
-
-               await folder.remove_chat(chat_id)
-
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-
-        Returns:
-            True on success.
-        """
-        peer = await self._client.resolve_peer(chat_id)
-        peer_id = utils.get_peer_id(peer)
-
-        return await self.edit(
-            pinned_chats=[i.id for i in self.pinned_chats or [] if peer_id != i.id],
-            included_chats=[i.id for i in self.included_chats or [] if peer_id != i.id],
-            excluded_chats=[i.id for i in self.excluded_chats or [] if peer_id != i.id],
-        )
-
-    async def update_color(self, color: enums.FolderColor) -> bool:
-        """Bound method *update_color* of :obj:`~pyrogram.types.Folder`.
+    async def include_chat(self, chat_id: Union[int, str]):
+        """Bound method *include_chat* of :obj:`~pyrogram.types.Folder`.
 
         Use as a shortcut for:
 
         .. code-block:: python
 
-            await client.edit_folder(
-                folder_id=folder_id,
-                color=color
-            )
+            await client.update_folder(123456789, ...)
 
         Example:
             .. code-block:: python
 
-               await folder.update_color(enums.FolderColor.RED)
-
-        Parameters:
-            color (:obj:`~pyrogram.enums.FolderColor`):
-                Color type.
-                Pass :obj:`~pyrogram.enums.FolderColor` to set folder color.
+               await folder.include_chat(chat_id)
 
         Returns:
             True on success.
         """
-        return await self.edit(color=color)
 
-    async def create_invite_link(
-        self, name: (str | None) = None, chat_ids: (list[int | str] | None) = None
-    ) -> types.FolderInviteLink:
-        """Bound method *create_invite_link* of :obj:`~pyrogram.types.Folder`.
+        return await self.update_peers(
+            pinned_peers=[i.id for i in self.pinned_peers] if self.pinned_peers else [],
+            included_peers=[i.id for i in self.included_peers] if self.included_peers else [] + [chat_id],
+            excluded_peers=[i.id for i in self.excluded_peers] if self.excluded_peers else [],
+        )
+
+    async def exclude_chat(self, chat_id: Union[int, str]):
+        """Bound method *exclude_chat* of :obj:`~pyrogram.types.Folder`.
 
         Use as a shortcut for:
 
         .. code-block:: python
 
-            await client.create_invite_link(123456789)
+            await client.update_folder(123456789, ...)
 
         Example:
             .. code-block:: python
 
-               await folder.create_invite_link()
+               await folder.exclude_chat(chat_id)
 
         Returns:
-            :obj:`~pyrogram.types.FolderInviteLink`: On success, information about the invite link is returned.
+            True on success.
         """
-        if chat_ids is None:
-            chat_ids = [i.id for i in self.included_chats or []]
 
-        return await self._client.create_folder_invite_link(
-            chat_folder_id=self.id, name=name, chat_ids=chat_ids
+        return await self.update_peers(
+            pinned_peers=[i.id for i in self.pinned_peers] if self.pinned_peers else [],
+            included_peers=[i.id for i in self.included_peers] if self.included_peers else [],
+            excluded_peers=[i.id for i in self.excluded_peers] if self.excluded_peers else [] + [chat_id],
+        )
+
+    async def export_link(self):
+        """Bound method *export_link* of :obj:`~pyrogram.types.Folder`.
+
+        Use as a shortcut for:
+
+        .. code-block:: python
+
+            await client.export_link(123456789)
+
+        Example:
+            .. code-block:: python
+
+               await folder.export_folder_link(chat_id)
+
+        Returns:
+            ``str``: On success, a link to the folder as string is returned.
+        """
+
+        return await self._client.export_folder_link(
+            folder_id=self.id
         )

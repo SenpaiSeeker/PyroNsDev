@@ -16,19 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import asyncio
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import pyrogram
+import pyrogram
 
 
 class Restart:
     async def restart(
-        self: pyrogram.Client, block: bool = True, clear_handlers: bool = False
-    ) -> pyrogram.Client:
+        self: "pyrogram.Client",
+        block: bool = True
+    ):
         """Restart the Client.
 
         This method will first call :meth:`~pyrogram.Client.stop` and then :meth:`~pyrogram.Client.start` in a row in
@@ -40,10 +35,6 @@ class Restart:
                 you want to restart the own client within an handler in order not to cause a deadlock.
                 Defaults to True.
 
-            clear_handlers (``bool``, *optional*):
-                Clear the already existing handlers on restart the client.
-                Default to False.
-
         Returns:
             :obj:`~pyrogram.Client`: The restarted client itself.
 
@@ -53,30 +44,29 @@ class Restart:
         Example:
             .. code-block:: python
 
-                import asyncio
-
                 from pyrogram import Client
+
+                app = Client("my_account")
 
 
                 async def main():
-                    app = Client("my_account")
-
                     await app.start()
                     ...  # Invoke API methods
                     await app.restart()
                     ...  # Invoke other API methods
                     await app.stop()
 
-                asyncio.run(main())
+
+                app.run(main())
         """
 
         async def do_it():
-            await self.stop(clear_handlers=clear_handlers)
+            await self.stop()
             await self.start()
 
         if block:
             await do_it()
         else:
-            asyncio.create_task(do_it())
+            self.loop.create_task(do_it())
 
         return self

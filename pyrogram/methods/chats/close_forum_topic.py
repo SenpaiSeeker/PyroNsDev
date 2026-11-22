@@ -16,18 +16,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 import pyrogram
 from pyrogram import raw
+from pyrogram import types
+from typing import Union
 
 
 class CloseForumTopic:
     async def close_forum_topic(
-        self: pyrogram.Client, chat_id: int | str, message_thread_id: int
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
+        topic_id: int
     ) -> bool:
-        """Use this method to close an open topic in a forum supergroup chat.
-        The bot must be an administrator in the chat for this to work and must have the `can_manage_topics` administrator rights, unless it is the creator of the topic.
+        """Close a forum topic.
 
         .. include:: /_includes/usable-by/users-bots.rst
 
@@ -35,43 +36,23 @@ class CloseForumTopic:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
 
-            message_thread_id (``int``):
-                Unique identifier for the target message thread of the forum topic.
+            topic_id (``int``):
+                Unique identifier (int) of the target forum topic.
 
         Returns:
-            ``bool``: On success, True is returned.
+            `bool`: On success, a Boolean is returned.
 
         Example:
             .. code-block:: python
 
-                await app.close_forum_topic(chat_id, message_thread_id)
+                await app.close_forum_topic(chat_id, topic_id)
         """
-        r = await self.invoke(
-            raw.functions.messages.EditForumTopic(
-                peer=await self.resolve_peer(chat_id), topic_id=message_thread_id, closed=True
+        await self.invoke(
+            raw.functions.channels.EditForumTopic(
+                channel=await self.resolve_peer(chat_id),
+                topic_id=topic_id,
+                closed=True
             )
         )
 
-        return bool(r)
-
-
-class CloseGeneralForumTopic:
-    async def close_general_forum_topic(self: pyrogram.Client, chat_id: int | str) -> bool:
-        """Use this method to close an open 'General' topic in a forum supergroup chat.
-        The bot must be an administrator in the chat for this to work and must have the `can_manage_topics` administrator rights.
-
-        .. include:: /_includes/usable-by/users-bots.rst
-
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-
-        Returns:
-            ``bool``: On success, True is returned.
-
-        Example:
-            .. code-block:: python
-
-                await app.close_general_forum_topic(chat_id)
-        """
-        return bool(await self.close_forum_topic(chat_id, message_thread_id=1))
+        return True

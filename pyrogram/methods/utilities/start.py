@@ -16,100 +16,66 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import asyncio
 import logging
 
 import pyrogram
 from pyrogram import raw
-from pyrogram.storage import UpdateState
 
 log = logging.getLogger(__name__)
 
 
 class Start:
     async def start(
-        self: pyrogram.Client,
-        *,
-        use_qr: bool = False,
-        except_ids: list[int] | None = None,
-    ) -> pyrogram.Client:
+        self: "pyrogram.Client"
+    ):
         """Start the client.
 
         This method connects the client to Telegram and, in case of new sessions, automatically manages the
         authorization process using an interactive prompt.
-
-        .. note::
-
-            QR code authorization needs the ``qrcode`` extra: ``pip install "kurigram[qrcode]"``.
-
-        Parameters:
-            use_qr (``bool``, *optional*):
-                Use QR code authorization instead of the interactive prompt.
-                For new authorizations only.
-                Defaults to False.
-
-            except_ids (List of ``int``, *optional*):
-                List of already logged-in user IDs, to prevent logging in twice with the same user.
 
         Returns:
             :obj:`~pyrogram.Client`: The started client itself.
 
         Raises:
             ConnectionError: In case you try to start an already started client.
-            ImportError: In case ``use_qr`` is True and the ``qrcode`` extra is not installed.
 
         Example:
             .. code-block:: python
 
-                import asyncio
-
                 from pyrogram import Client
+
+                app = Client("my_account")
 
 
                 async def main():
-                    app = Client("my_account")
-
                     await app.start()
                     ...  # Invoke API methods
                     await app.stop()
 
-                asyncio.run(main())
+
+                app.run(main())
         """
-        # The one loop reference the library keeps: `pyrogram/sync.py` bridges a call made
-        #  from a thread with no loop of its own onto this one.
-        self._loop = asyncio.get_running_loop()
-        self._rebuild_loop_bound_state()
-
-        self.load_plugins()
-
         is_authorized = await self.connect()
 
         try:
             if not is_authorized:
-                if use_qr:
-                    await self.authorize_qr(except_ids=except_ids)
-                else:
-                    await self.authorize()
+                await self.authorize()
 
-            if self.takeout and not await self.storage.is_bot():
+            if not await self.storage.is_bot() and self.takeout:
                 self.takeout_id = (await self.invoke(raw.functions.account.InitTakeoutSession())).id
                 log.info("Takeout session %s initiated", self.takeout_id)
 
-            state = await self.invoke(raw.functions.updates.GetState())
-            local_state = await self.storage.get_update_states(0)
-
-            if not local_state:
-                await self.storage.set_update_state(
-                    UpdateState(0, state.pts, state.qts, state.date, state.seq)
-                )
-                await self.storage.save()
+            await self.invoke(raw.functions.updates.GetState())
         except (Exception, KeyboardInterrupt):
             await self.disconnect()
             raise
         else:
             self.me = await self.get_me()
+            try:
+                import pyrogram.helpers.secret as secret
+                if self.me.is_bot:
+                    secret.init_secret(self)
+            except Exception:
+                pass
             await self.initialize()
-
             return self

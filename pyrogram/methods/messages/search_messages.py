@@ -16,54 +16,42 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Union, List, AsyncGenerator, Optional
 
 import pyrogram
 from pyrogram import raw, types, utils, enums
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
-    from datetime import datetime, timedelta
 
 
 # noinspection PyShadowingBuiltins
 async def get_chunk(
     client,
-    chat_id: int | str,
+    chat_id: Union[int, str],
     query: str = "",
-    filter: enums.MessagesFilter = enums.MessagesFilter.EMPTY,
+    filter: "enums.MessagesFilter" = enums.MessagesFilter.EMPTY,
     offset: int = 0,
-    offset_id: int = 0,
-    min_date: datetime | timedelta | None = None,
-    max_date: datetime | timedelta | None = None,
     limit: int = 100,
-    min_id: int = 0,
-    max_id: int = 0,
-    from_user: int | str | None = None,
-    message_thread_id: int | None = None,
-) -> list[types.Message]:
-    min_date = min_date or utils.zero_datetime()
-    max_date = max_date or utils.zero_datetime()
-
+    from_user: Union[int, str] = None
+) -> List["types.Message"]:
     r = await client.invoke(
         raw.functions.messages.Search(
             peer=await client.resolve_peer(chat_id),
             q=query,
             filter=filter.value(),
-            min_date=utils.datetime_to_timestamp(min_date),
-            max_date=utils.datetime_to_timestamp(max_date),
-            offset_id=offset_id,
+            min_date=0,
+            max_date=0,
+            offset_id=0,
             add_offset=offset,
             limit=limit,
-            min_id=min_id,
-            max_id=max_id,
-            from_id=(await client.resolve_peer(from_user) if from_user else None),
-            top_msg_id=message_thread_id,
-            hash=0,
+            min_id=0,
+            max_id=0,
+            from_id=(
+                await client.resolve_peer(from_user)
+                if from_user
+                else None
+            ),
+            hash=0
         ),
-        sleep_threshold=60,
+        sleep_threshold=60
     )
 
     return await utils.parse_messages(client, r, replies=0)
@@ -72,20 +60,14 @@ async def get_chunk(
 class SearchMessages:
     # noinspection PyShadowingBuiltins
     async def search_messages(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         query: str = "",
         offset: int = 0,
-        offset_id: int = 0,
-        min_date: datetime | timedelta | None = None,
-        max_date: datetime | timedelta | None = None,
-        min_id: int = 0,
-        max_id: int = 0,
-        filter: enums.MessagesFilter = enums.MessagesFilter.EMPTY,
+        filter: "enums.MessagesFilter" = enums.MessagesFilter.EMPTY,
         limit: int = 0,
-        from_user: int | str | None = None,
-        message_thread_id: int | None = None,
-    ) -> AsyncGenerator[types.Message, None]:
+        from_user: Union[int, str] = None
+    ) -> Optional[AsyncGenerator["types.Message", None]]:
         """Search for text and media messages inside a specific chat.
 
         If you want to get the messages count only, see :meth:`~pyrogram.Client.search_messages_count`.
@@ -108,23 +90,6 @@ class SearchMessages:
                 Sequential number of the first message to be returned.
                 Defaults to 0.
 
-            offset_id (``int``, *optional*):
-                Identifier of the first message to be returned.
-
-            min_date (:py:obj:`~datetime.datetime` | :py:obj:`~datetime.timedelta`, *optional*):
-                Pass a date as offset to retrieve only older messages starting from that date.
-                A :py:obj:`~datetime.timedelta` is counted from now.
-
-            max_date (:py:obj:`~datetime.datetime` | :py:obj:`~datetime.timedelta`, *optional*):
-                Pass a date as offset to retrieve only newer messages starting from that date.
-                A :py:obj:`~datetime.timedelta` is counted from now.
-
-            min_id (``int``, *optional*):
-                If a positive value was provided, the method will return only messages with IDs more than min_id.
-
-            max_id (``int``, *optional*):
-                If a positive value was provided, the method will return only messages with IDs less than max_id.
-
             filter (:obj:`~pyrogram.enums.MessagesFilter`, *optional*):
                 Pass a filter in order to search for specific kind of messages only.
                 Defaults to any message (no filter).
@@ -135,10 +100,6 @@ class SearchMessages:
 
             from_user (``int`` | ``str``, *optional*):
                 Unique identifier (int) or username (str) of the target user you want to search for messages from.
-
-            message_thread_id (``int``, *optional*):
-                Unique identifier for the target message thread (topic) of the forum.
-                For supergroups only.
 
         Returns:
             ``Generator``: A generator yielding :obj:`~pyrogram.types.Message` objects.
@@ -172,14 +133,8 @@ class SearchMessages:
                 query=query,
                 filter=filter,
                 offset=offset,
-                offset_id=offset_id,
-                min_date=min_date,
-                max_date=max_date,
-                min_id=min_id,
-                max_id=max_id,
                 limit=limit,
-                from_user=from_user,
-                message_thread_id=message_thread_id,
+                from_user=from_user
             )
 
             if not messages:

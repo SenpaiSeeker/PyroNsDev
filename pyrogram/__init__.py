@@ -16,12 +16,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-__version__ = "2.2.27"
+__version__ = "2.0.212"
 __license__ = "GNU Lesser General Public License v3.0 (LGPL-3.0)"
 __copyright__ = "Copyright (C) 2017-present Dan <https://github.com/delivrance>"
 
+from concurrent.futures.thread import ThreadPoolExecutor
 
-class StopTransmission(Exception):
+
+class StopTransmission(Exception):  # noqa: N818
     pass
 
 
@@ -33,9 +35,14 @@ class ContinuePropagation(StopAsyncIteration):
     pass
 
 
-from . import enums, filters, handlers, raw, types
+crypto_executor = ThreadPoolExecutor(1, thread_name_prefix="CryptoWorker")
+
+# ruff: noqa: E402
+
+from . import enums, errors, filters, handlers, raw, types
 from .client import Client
-from .sync import compose, idle
+from .methods.utilities.compose import compose
+from .methods.utilities.idle import idle
 
 __all__ = [
     "Client",
@@ -43,7 +50,9 @@ __all__ = [
     "StopPropagation",
     "StopTransmission",
     "compose",
+    "crypto_executor",
     "enums",
+    "errors",
     "filters",
     "handlers",
     "idle",

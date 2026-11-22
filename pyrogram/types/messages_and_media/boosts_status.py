@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import List
 
 from pyrogram import raw, types
 from ..object import Object
@@ -42,8 +42,7 @@ class BoostsStatus(Object):
             True, if you boost this channel.
 
         gift_boosts (``int``, *optional*):
-            The number of boosts acquired from created Telegram Premium gift codes and giveaways.
-            Only returned to channel/supergroup admins.
+            N/A
 
         next_level_boosts (``int``, *optional*):
             Number of boosts at which the next level will be reached.
@@ -59,10 +58,10 @@ class BoostsStatus(Object):
         current_level_boosts: int,
         boosts: int,
         boost_url: str,
-        my_boost: bool | None = None,
-        gift_boosts: int | None = None,
-        next_level_boosts: int | None = None,
-        my_boost_slots: list[int] | None = None,
+        my_boost: bool = None,
+        gift_boosts: int = None,
+        next_level_boosts: int = None,
+        my_boost_slots: List[int] = None
     ):
         super().__init__()
 
@@ -76,7 +75,7 @@ class BoostsStatus(Object):
         self.my_boost_slots = my_boost_slots
 
     @staticmethod
-    def _parse(boosts_status: raw.types.premium.BoostsStatus) -> BoostsStatus:
+    def _parse(boosts_status: "raw.types.premium.BoostsStatus") -> "BoostsStatus":
         return BoostsStatus(
             level=boosts_status.level,
             current_level_boosts=boosts_status.current_level_boosts,

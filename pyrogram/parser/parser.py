@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Optional
 
 import pyrogram
 from pyrogram import enums
@@ -25,13 +25,13 @@ from .markdown import Markdown
 
 
 class Parser:
-    def __init__(self, client: pyrogram.Client | None):
+    def __init__(self, client: Optional["pyrogram.Client"]):
         self.client = client
         self.html = HTML(client)
         self.markdown = Markdown(client)
 
-    async def parse(self, text: str, mode: enums.ParseMode | None = None) -> dict:
-        text = str(text or "").strip()
+    async def parse(self, text: str, mode: Optional[enums.ParseMode] = None):
+        text = str(text if text else "").strip()
 
         if mode is None:
             if self.client:
@@ -54,7 +54,7 @@ class Parser:
         raise ValueError(f'Invalid parse mode "{mode}"')
 
     @staticmethod
-    def unparse(text: str, entities: list, is_html: bool) -> str:
+    def unparse(text: str, entities: list, is_html: bool):
         if is_html:
             return HTML.unparse(text, entities)
         else:

@@ -16,8 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
 from io import BytesIO
 from typing import Any
 
@@ -37,13 +35,13 @@ class FutureSalt(TLObject):
         self.valid_until = valid_until
         self.salt = salt
 
-    @classmethod
-    def read(cls, data: BytesIO, *args: Any) -> FutureSalt:
+    @staticmethod
+    def read(data: BytesIO, *args: Any) -> "FutureSalt":
         valid_since = Int.read(data)
         valid_until = Int.read(data)
         salt = Long.read(data)
 
-        return cls(valid_since, valid_until, salt)
+        return FutureSalt(valid_since, valid_until, salt)
 
     def write(self, *args: Any) -> bytes:
         b = BytesIO()

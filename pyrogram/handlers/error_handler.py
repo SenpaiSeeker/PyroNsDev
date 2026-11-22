@@ -1,107 +1,79 @@
-#  Pyrogram - Telegram MTProto API Client Library for Python
+#  Pyrofork - Telegram MTProto API Client Library for Python
 #  Copyright (C) 2017-present Dan <https://github.com/delivrance>
+#  Copyright (C) 2022-present Mayuri-Chan <https://github.com/Mayuri-Chan>
 #
-#  This file is part of Pyrogram.
+#  This file is part of Pyrofork.
 #
-#  Pyrogram is free software: you can redistribute it and/or modify
+#  Pyrofork is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published
 #  by the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Pyrogram is distributed in the hope that it will be useful,
+#  Pyrofork is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU Lesser General Public License for more details.
 #
 #  You should have received a copy of the GNU Lesser General Public License
-#  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
+#  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
-
-from pyrogram import raw
+from collections.abc import Iterable
+from typing import Callable
 
 from .handler import Handler
 
-if TYPE_CHECKING:
-    import pyrogram
-    from pyrogram.filters import Filter
+import pyrogram
+from pyrogram.types import Update
 
 
-ErrorCallbackType = Callable[
-    [
-        "pyrogram.Client",
-        Exception,
-        Handler[Any],
-        raw.base.Update,
-        dict[int, raw.base.User],
-        dict[int, raw.base.Chat],
-    ],
-    Any,
-]
+class ErrorHandler(Handler):
+    """The Error handler class. Used to handle errors.
+    It is intended to be used with :meth:`~pyrogram.Client.add_handler`
 
-
-class ErrorHandler(Handler[ErrorCallbackType]):
-    """The Error handler class. Used to handle unexpected errors.
-
-    It is intended to be used with :meth:`~pyrogram.Client.add_handler`.
-
-    For a more convenient way to register this handler, see the
+    For a nicer way to register this handler, have a look at the
     :meth:`~pyrogram.Client.on_error` decorator.
 
     Parameters:
         callback (``Callable``):
-            A function that will be called whenever an unexpected error is raised.
-            It takes *(client, exception, handler, update, users, chats)* as positional arguments
-            (look at the section below for a detailed description).
+            Pass a function that will be called when a new Error arrives. It takes *(client, error)*
+            as positional arguments (look at the section below for a detailed description).
 
-        exceptions (``Exception`` | List of ``Exception``, *optional*):
-            An exception type or a sequence of exception types that this handler should handle.
-            If None, the handler will catch any exception that is a subclass of ``Exception``.
-
-        filters (:obj:`~pyrogram.filters.Filter`, *optional*):
-            Pass one or more filters to allow only a subset of updates to be passed
+        exceptions (``Exception`` | Iterable of ``Exception``, *optional*):
+            Pass one or more exception classes to allow only a subset of errors to be passed
             in your callback function.
 
-    Other parameters passed to the callback:
+    Other parameters:
         client (:obj:`~pyrogram.Client`):
-            The Client instance, useful when calling other API methods inside the error handler.
+            The Client itself, useful when you want to call other API methods inside the error handler.
 
-        exception (``Exception``):
-            The Exception instance that was raised.
+        update (:obj:`~pyrogram.Update`):
+            The update that caused the error.
 
-        handler (:obj:`~pyrogram.handlers.handler.Handler`):
-            The Handler instance from which the exception was raised.
-
-        update (:obj:`~pyrogram.raw.base.Update`):
-            The received update, which can be one of the many single Updates listed in the
-            :obj:`~pyrogram.raw.base.Update` base type.
-
-        users (``dict``):
-            Dictionary of all :obj:`~pyrogram.raw.base.User` mentioned in the update.
-            You can access extra info about the user (such as *first_name*, *last_name*, etc...) by using
-            the IDs you find in the *update* argument (e.g.: *users[1768841572]*).
-
-        chats (``dict``):
-            Dictionary of all :obj:`~pyrogram.raw.base.Chat` mentioned in the update.
-            You can access extra info about the chat (such as *title*, *participants_count*, etc...)
-            by using the IDs you find in the *update* argument (e.g.: *chats[1701277281]*).
-
+        error (``Exception``):
+            The error that was raised.
     """
 
     def __init__(
         self,
-        callback: ErrorCallbackType,
-        exceptions: Exception | Sequence[Exception] | None = None,
-        filters: Filter | None = None,
-    ) -> None:
-        super().__init__(callback, filters)
+        callback: Callable,
+        exceptions: type[Exception] | Iterable[type[Exception]] | None = None,
+    ):
+        self.exceptions = (
+            tuple(exceptions)
+            if isinstance(exceptions, Iterable)
+            else (exceptions,)
+            if exceptions
+            else (Exception,)
+        )
+        super().__init__(callback)
 
-        if exceptions is None:
-            self.exceptions = (Exception,)
-        elif isinstance(exceptions, Sequence):
-            self.exceptions = tuple(exceptions)
-        else:
-            self.exceptions = (exceptions,)
+    async def check(self, client: pyrogram.Client, update: Update, exception: Exception) -> bool:
+        if isinstance(exception, self.exceptions):
+            await self.callback(client, update, exception)
+            return True
+        return False
+
+    def check_remove(self, error: type[Exception] | Iterable[type[Exception]]) -> bool:
+        return isinstance(error, self.exceptions)

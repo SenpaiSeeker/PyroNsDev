@@ -16,25 +16,20 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-from typing import TYPE_CHECKING
+from typing import Union
 
 import pyrogram
-from pyrogram import raw, types, utils
-
-if TYPE_CHECKING:
-    from datetime import datetime, timedelta
+from pyrogram import raw
+from pyrogram import types
 
 
 class EditMessageReplyMarkup:
     async def edit_message_reply_markup(
-        self: pyrogram.Client,
-        chat_id: int | str,
+        self: "pyrogram.Client",
+        chat_id: Union[int, str],
         message_id: int,
-        schedule_date: datetime | timedelta | None = None,
-        reply_markup: types.InlineKeyboardMarkup | None = None,
-    ) -> types.Message:
+        reply_markup: "types.InlineKeyboardMarkup" = None,
+    ) -> "types.Message":
         """Edit only the reply markup of messages sent by the bot.
 
         .. include:: /_includes/usable-by/bots.rst
@@ -47,10 +42,6 @@ class EditMessageReplyMarkup:
 
             message_id (``int``):
                 Message identifier in the chat specified in chat_id.
-
-            schedule_date (:py:obj:`~datetime.datetime` | :py:obj:`~datetime.timedelta`, *optional*):
-                Date when the message will be automatically sent.
-                A :py:obj:`~datetime.timedelta` is counted from now.
 
             reply_markup (:obj:`~pyrogram.types.InlineKeyboardMarkup`, *optional*):
                 An InlineKeyboardMarkup object.
@@ -73,17 +64,14 @@ class EditMessageReplyMarkup:
             raw.functions.messages.EditMessage(
                 peer=await self.resolve_peer(chat_id),
                 id=message_id,
-                schedule_date=utils.datetime_to_timestamp(schedule_date),
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
             )
         )
 
-        messages = await utils.parse_messages(
-            client=self,
-            messages=r,
-        )
-
-        if not messages:
-            raise ValueError("The response contains no edited message")
-
-        return messages[0]
+        for i in r.updates:
+            if isinstance(i, (raw.types.UpdateEditMessage, raw.types.UpdateEditChannelMessage)):
+                return await types.Message._parse(
+                    self, i.message,
+                    {i.id: i for i in r.users},
+                    {i.id: i for i in r.chats}
+                )

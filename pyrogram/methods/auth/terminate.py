@@ -16,10 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
-
-import asyncio
-import contextlib
 import logging
 
 import pyrogram
@@ -29,16 +25,13 @@ log = logging.getLogger(__name__)
 
 
 class Terminate:
-    async def terminate(self: pyrogram.Client, clear_handlers: bool = True):
+    async def terminate(
+        self: "pyrogram.Client",
+    ):
         """Terminate the client by shutting down workers.
 
         This method does the opposite of :meth:`~pyrogram.Client.initialize`.
         It will stop the dispatcher and shut down updates and download workers.
-
-        Parameters:
-            clear_handlers (``bool``, *optional*):
-                Clear the already existing handlers on restart the client.
-                Default to True.
 
         Raises:
             ConnectionError: In case you try to terminate a client that is already terminated.
@@ -51,27 +44,17 @@ class Terminate:
             log.info("Takeout session %s finished", self.takeout_id)
 
         await self.storage.save()
-        await self.dispatcher.stop(clear_handlers=clear_handlers)
+        await self.dispatcher.stop()
 
         for media_session in self.media_sessions.values():
             await media_session.stop()
 
         self.media_sessions.clear()
 
-        for session in self.sessions.values():
-            await session.stop()
-
-        self.sessions.clear()
-
         self.updates_watchdog_event.set()
 
         if self.updates_watchdog_task is not None:
-            self.updates_watchdog_task.cancel()
-
-            with contextlib.suppress(asyncio.CancelledError):
-                await self.updates_watchdog_task
-
-            self.updates_watchdog_task = None
+            await self.updates_watchdog_task
 
         self.updates_watchdog_event.clear()
 

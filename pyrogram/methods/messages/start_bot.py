@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from typing import Union
 
 import pyrogram
 from pyrogram import raw
@@ -25,47 +25,45 @@ from pyrogram import types
 
 class StartBot:
     async def start_bot(
-        self: pyrogram.Client, chat_id: int | str, param: str = ""
-    ) -> types.Message | None:
+        self: "pyrogram.Client",
+        bot: Union[int, str],
+        start_param: str = ""
+    ) -> bool:
         """Start bot
 
         .. include:: /_includes/usable-by/users.rst
 
         Parameters:
-            chat_id (``int`` | ``str``):
+            bot (``int`` | ``str``):
                 Unique identifier of the bot you want to be started. You can specify
                 a @username (str) or a bot ID (int).
 
-            param (``str``, *optional*):
-                Text of the deep linking parameter (up to 64 characters).
+            start_param (``str``):
+                Text of the param (up to 64 characters).
                 Defaults to "" (empty string).
 
         Returns:
-            :obj:`~pyrogram.types.Message` | ``None``: On success, the sent message is returned, otherwise, in case the
-            server answered with no message, None is returned.
+            ``bool`` - On success, True is returned.
 
         Example:
             .. code-block:: python
 
                 # Start bot
                 await app.start_bot("pyrogrambot")
-
-                # Start bot with param
-                await app.start_bot("pyrogrambot", "ref123456")
         """
-        if not param:
-            return await self.send_message(chat_id, "/start")
-
-        peer = await self.resolve_peer(chat_id)
-
         r = await self.invoke(
             raw.functions.messages.StartBot(
-                bot=peer, peer=peer, random_id=self.rnd_id(), start_param=param
+                bot=await self.resolve_peer(bot),
+                peer=raw.types.InputPeerSelf(),
+                random_id=self.rnd_id(),
+                start_param=start_param
             )
         )
 
         for i in r.updates:
             if isinstance(i, raw.types.UpdateNewMessage):
                 return await types.Message._parse(
-                    self, i.message, {i.id: i for i in r.users}, {i.id: i for i in r.chats}
+                    self, i.message,
+                    {i.id: i for i in r.users},
+                    {i.id: i for i in r.chats}
                 )

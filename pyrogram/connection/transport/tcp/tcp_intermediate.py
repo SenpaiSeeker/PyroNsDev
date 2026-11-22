@@ -16,43 +16,28 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import annotations as _annotations
+from __future__ import annotations
 
 import logging
 from struct import pack, unpack
-from typing import TYPE_CHECKING
 
-from pyrogram.connection.transport.tcp.tcp import TCP
-
-if TYPE_CHECKING:
-    from pyrogram.connection.proxy import Proxy
+from .tcp import TCP, Proxy
 
 log = logging.getLogger(__name__)
 
 
 class TCPIntermediate(TCP):
-    def __init__(
-        self,
-        ipv6: bool,
-        proxy: Proxy | None = None,
-        crypto_executor_workers: int = 1,
-        dc_id: int | None = None,
-    ) -> None:
-        super().__init__(ipv6, proxy, crypto_executor_workers, dc_id=dc_id)
+    def __init__(self, ipv6: bool, proxy: Proxy) -> None:
+        super().__init__(ipv6, proxy)
 
     async def connect(self, address: tuple[str, int]) -> None:
-        self.marker_event.clear()
         await super().connect(address)
-        await super().send(b"\xee" * 4, wait_for_marker=False)
-        self.marker_event.set()
+        await super().send(b"\xee" * 4)
 
-    async def send(self, data: bytes, wait_for_marker: bool = True) -> None:
-        await super().send(pack("<i", len(data)) + data, wait_for_marker)
+    async def send(self, data: bytes, *args) -> None:
+        await super().send(pack("<i", len(data)) + data)
 
     async def recv(self, length: int = 0) -> bytes | None:
         length = await super().recv(4)
 
-        if length is None:
-            return None
-
-        return await super().recv(unpack("<i", length)[0])
+        return None if length is None else await super().recv(unpack("<i", length)[0])
