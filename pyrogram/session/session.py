@@ -359,11 +359,21 @@ class Session:
                     )
 
                 if self.is_started.is_set():
-                    self.client.loop.create_task(self.restart())
+                    restart_task = self.client.loop.create_task(
+                        self.restart()
+                    )
+                    restart_task.add_done_callback(
+                        _consume_update_task_exception
+                    )
 
                 break
 
-            self.client.loop.create_task(self.handle_packet(packet))
+            packet_task = self.client.loop.create_task(
+                self.handle_packet(packet)
+            )
+            packet_task.add_done_callback(
+                _consume_update_task_exception
+            )
 
         log.info("NetworkTask stopped")
 
