@@ -46,7 +46,8 @@ from pyrogram.errors import CDNFileHashMismatch
 from pyrogram.errors import (
     SessionPasswordNeeded,
     VolumeLocNotFound, ChannelPrivate,
-    BadRequest, AuthBytesInvalid, PersistentTimestampOutdated
+    BadRequest, AuthBytesInvalid, PersistentTimestampOutdated,
+    RPCError,
 )
 from .connection import Connection
 from .connection.transport import TCP, TCPAbridged
@@ -731,6 +732,27 @@ class Client(Methods):
                             )
                         except (ChannelPrivate, PersistentTimestampOutdated):
                             pass
+                        except RPCError as e:
+                            # Telegram can answer GetChannelDifference with
+                            # PERSISTENT_TIMESTAMP_INVALID even when the class is
+                            # not exported by this fork. The pts is stale; drop
+                            # this one difference and let later updates recover.
+                            error_name = str(
+                                getattr(e, "ID", "") or ""
+                            ).upper()
+                            message = str(e).upper()
+                            if (
+                                error_name
+                                in (
+                                    "PERSISTENT_TIMESTAMP_INVALID",
+                                    "PERSISTENT_TIMESTAMP_OUTDATED",
+                                )
+                                or "PERSISTENT_TIMESTAMP_INVALID" in message
+                                or "PERSISTENT_TIMESTAMP_OUTDATED" in message
+                            ):
+                                pass
+                            else:
+                                raise
                         else:
                             if not isinstance(diff, raw.types.updates.ChannelDifferenceEmpty):
                                 users.update({u.id: u for u in diff.users})

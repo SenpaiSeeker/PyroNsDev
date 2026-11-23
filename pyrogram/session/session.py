@@ -50,6 +50,17 @@ from pyrogram.connection import Connection
 log = logging.getLogger(__name__)
 
 
+def _consume_update_task_exception(task: asyncio.Task) -> None:
+    """Retrieve exceptions from update tasks so asyncio does not log
+    "Task exception was never retrieved" for a stale channel difference."""
+    try:
+        exception = task.exception()
+    except (asyncio.CancelledError, asyncio.InvalidStateError):
+        return
+    if exception is not None:
+        log.debug("Update task failed: %s", exception)
+
+
 class Result:
     def __init__(self):
         self.value = None
@@ -289,7 +300,12 @@ class Session:
             elif isinstance(msg.body, raw.types.Pong):
                 msg_id = msg.body.msg_id
             elif self.client is not None:
-                self.client.loop.create_task(self.client.handle_updates(msg.body))
+                update_task = self.client.loop.create_task(
+                    self.client.handle_updates(msg.body)
+                )
+                update_task.add_done_callback(
+                    _consume_update_task_exception
+                )
 
             if msg_id in self.results:
                 self.results[msg_id].value = getattr(msg.body, "result", msg.body)
