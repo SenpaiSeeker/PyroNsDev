@@ -148,8 +148,7 @@ class SendMessage:
         quote_text, quote_entities = (await utils.parse_text_entities(self, quote_text, parse_mode, quote_entities)).values()
 
         peer = await self.resolve_peer(chat_id)
-        r = await self.invoke(
-            raw.functions.messages.SendMessage(
+        rpc = raw.functions.messages.SendMessage(
                 peer=peer,
                 no_webpage=disable_web_page_preview or None,
                 silent=disable_notification or None,
@@ -168,8 +167,8 @@ class SendMessage:
                 entities=entities,
                 noforwards=protect_content,
                 effect=effect_id
-            )
         )
+        r = await _send_with_guest_join(self, rpc, peer)
 
         if isinstance(r, raw.types.UpdateShortSentMessage):
             peer = await self.resolve_peer(chat_id)

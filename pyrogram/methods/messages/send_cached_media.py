@@ -125,8 +125,7 @@ class SendCachedMedia:
         quote_text, quote_entities = (await utils.parse_text_entities(self, quote_text, parse_mode, quote_entities)).values()
 
         peer = await self.resolve_peer(chat_id)
-        r = await self.invoke(
-            raw.functions.messages.SendMedia(
+        rpc = raw.functions.messages.SendMedia(
                 peer=peer,
                 media=utils.get_input_media_from_file_id(file_id, has_spoiler=has_spoiler),
                 silent=disable_notification or None,
@@ -143,9 +142,9 @@ class SendCachedMedia:
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 noforwards=protect_content,
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
-                **await utils.parse_text_entities(self, caption, parse_mode, caption_entities)
-            )
+        **await utils.parse_text_entities(self, caption, parse_mode, caption_entities)
         )
+        r = await _send_with_guest_join(self, rpc, peer)
 
         for i in r.updates:
             if isinstance(i, (raw.types.UpdateNewMessage,
