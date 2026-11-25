@@ -23,11 +23,46 @@ from typing import TYPE_CHECKING
 
 import pyrogram
 from pyrogram import enums, raw, types, utils
+from pyrogram.errors import RPCError
 
 if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
 log = logging.getLogger(__name__)
+
+
+async def _send_with_guest_join(
+    client, rpc, peer, business_connection_id=None
+):
+    try:
+        if business_connection_id:
+            return await client.invoke(
+                rpc, business_connection_id=business_connection_id
+            )
+        return await client.invoke(rpc)
+    except RPCError as e:
+        if "CHAT_GUEST_SEND_FORBIDDEN" not in str(e).upper():
+            raise
+        full = await client.invoke(
+            raw.functions.channels.GetFullChannel(channel=peer)
+        )
+        linked = getattr(
+            getattr(full, "full_chat", None), "linked_chat_id", None
+        )
+        if linked is None:
+            raise
+        await client.invoke(
+            raw.functions.channels.JoinChannel(
+                channel=await client.resolve_peer(linked)
+            )
+        )
+        rpc.random_id = client.rnd_id()
+        if business_connection_id:
+            return await client.invoke(
+                rpc, business_connection_id=business_connection_id
+            )
+        return await client.invoke(rpc)
+
 
 
 class SendCachedMedia:
@@ -233,9 +268,9 @@ class SendCachedMedia:
                 quote_position=quote_offset,
             )
 
-        r = await self.invoke(
-            raw.functions.messages.SendMedia(
-                peer=await self.resolve_peer(chat_id),
+        peer = await self.resolve_peer(chat_id)
+        rpc = raw.functions.messages.SendMedia(
+                peer=peer,
                 media=utils.get_input_media_from_file_id(file_id, has_spoiler=has_spoiler),
                 silent=disable_notification,
                 invert_media=show_caption_above_media,
@@ -253,8 +288,9 @@ class SendCachedMedia:
                 if suggested_post_parameters
                 else None,
                 **await utils.parse_text_entities(self, caption, parse_mode, caption_entities),
-            ),
-            business_connection_id=business_connection_id,
+        )
+        r = await _send_with_guest_join(
+            self, rpc, peer, business_connection_id
         )
 
         messages = await utils.parse_messages(client=self, messages=r)

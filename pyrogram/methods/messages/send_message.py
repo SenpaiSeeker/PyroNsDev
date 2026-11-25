@@ -23,11 +23,46 @@ from typing import TYPE_CHECKING
 
 import pyrogram
 from pyrogram import enums, raw, types, utils
+from pyrogram.errors import RPCError
 
 if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
 log = logging.getLogger(__name__)
+
+
+async def _send_with_guest_join(
+    client, rpc, peer, business_connection_id=None
+):
+    try:
+        if business_connection_id:
+            return await client.invoke(
+                rpc, business_connection_id=business_connection_id
+            )
+        return await client.invoke(rpc)
+    except RPCError as e:
+        if "CHAT_GUEST_SEND_FORBIDDEN" not in str(e).upper():
+            raise
+        full = await client.invoke(
+            raw.functions.channels.GetFullChannel(channel=peer)
+        )
+        linked = getattr(
+            getattr(full, "full_chat", None), "linked_chat_id", None
+        )
+        if linked is None:
+            raise
+        await client.invoke(
+            raw.functions.channels.JoinChannel(
+                channel=await client.resolve_peer(linked)
+            )
+        )
+        rpc.random_id = client.rnd_id()
+        if business_connection_id:
+            return await client.invoke(
+                rpc, business_connection_id=business_connection_id
+            )
+        return await client.invoke(rpc)
+
 
 
 class SendMessage:
@@ -385,7 +420,9 @@ class SendMessage:
                 effect=effect_id,
             )
 
-        r = await self.invoke(rpc, business_connection_id=business_connection_id)
+        r = await _send_with_guest_join(
+            self, rpc, peer, business_connection_id
+        )
 
         if isinstance(r, raw.types.UpdateShortSentMessage):
             peer = await self.resolve_peer(chat_id)
